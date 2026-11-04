@@ -44,10 +44,10 @@ console.log('Damage');
   const rng = lcg(7);
   let min = 1e9, max = 0;
   for (let i = 0; i < 500; i++) {
-    const d = Logic.bossDamage(Logic.BOSSES[3], 2, rng);
+    const d = Logic.bossDamage(Logic.BOSSES[Logic.BOSSES.length - 1], 2, rng);
     min = Math.min(min, d); max = Math.max(max, d);
   }
-  ok(min >= 18 && max <= 26, 'PRIME boss damage within buffed range (' + min + '..' + max + ')');
+  ok(min >= 18 && max <= 26, 'final boss damage within buffed range (' + min + '..' + max + ')');
   const dStreak = Logic.playerDamage('momo', 0, { streak: 6, fast: false, rng: () => 0.99 });
   ok(dStreak === Math.round(12 * 1.5), 'streak 6 gives combo x1.5');
   const dCrit = Logic.playerDamage('momo', 0, { streak: 1, fast: true, rng: () => 0.1 });
@@ -59,7 +59,10 @@ console.log('Damage');
 console.log('Token economy');
 ok(Logic.PULL_COST === 100, 'a gacha pull costs 100 tokens');
 ok(Logic.bossTokenReward(Logic.BOSSES[0]) === 100, 'a normal boss pays 100 tokens');
-ok(Logic.bossTokenReward(Logic.BOSSES[3]) === 1000, 'the final boss pays 1000 tokens');
+ok(Logic.bossTokenReward(Logic.BOSSES[Logic.BOSSES.length - 1]) === 1000, 'the final boss pays 1000 tokens');
+ok(Logic.BOSSES.length === 5, 'the ladder has 5 bosses');
+ok(Logic.BOSSES.map(b => b.level).join(',') === '1,2,3,4,5', 'boss levels run 1 to 5');
+ok(Logic.BOSSES.map(b => b.name).join(',') === 'BRAGI,THOTH,SARASWATI,ATHENA,NOUS', 'bosses are knowledge gods, weakest to wisest');
 
 console.log('Questions');
 for (const tier of ['dasar', 'menengah', 'sulit', 'ahli']) {
