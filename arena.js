@@ -162,14 +162,6 @@ function bossDamage(boss, liveBuff, rng) {
   rng = rng || Math.random;
   return Math.max(1, Math.round((boss.atk + (liveBuff || 0)) * (0.85 + rng() * 0.3)));
 }
-function gachaRoll(rng) {
-  rng = rng || Math.random;
-  const r = rng();
-  if (r < RARE_CHANCE) return 'aurum';
-  if (r < 0.381) return 'momo';
-  if (r < 0.711) return 'shiro';
-  return 'goma';
-}
 function shuffle(arr, rng) {
   rng = rng || Math.random;
   const a = arr.slice();
@@ -210,7 +202,7 @@ function buildLiveQuestions(st) {
 }
 
 const Logic = { BOSSES, HAMSTERS, QUESTIONS, RARE_CHANCE,
-                levelFromXp, statsFor, playerDamage, bossDamage, gachaRoll,
+                levelFromXp, statsFor, playerDamage, bossDamage,
                 shuffle, makeOptions, buildLiveQuestions,
                 normalizeAddress, pullFor, recordPull, PET_CONTRACT, mintTotalEth, mintChargeEth, MINT_MAX,
                 PET_SPECIES, PET_SEL, encAddress, encUint, decodePetOf, decodeBool,
@@ -221,17 +213,18 @@ if (typeof document === 'undefined') return;
 
 /* ============================== UI ============================== */
 /* Screen-based navigation: exactly one screen is visible at a time.
-   home -> howto | trainer -> aura -> gacha -> ladder -> battle -> certified */
+   home -> howto | trainer -> gacha -> ladder -> choose -> battle -> certified;
+   mint and collection branch off the home menu. */
 const SPR = global.SQUEEK_SPRITES;
 if (!SPR) return;
 const $ = id => document.getElementById(id);
 const els = {
   btnPlay: $('btnPlay'), btnHowto: $('btnHowto'), btnResetHome: $('btnResetHome'),
-  btnCollection: $('btnCollection'), btnSound: $('btnSound'), btnShop: $('btnShop'),
-  shopBoxCanvas: $('shopBoxCanvas'), shopBuy: $('shopBuy'),
+  btnCollection: $('btnCollection'), btnSound: $('btnSound'), btnMint: $('btnMint'),
+  mintBoxCanvas: $('mintBoxCanvas'), mintBuy: $('mintBuy'),
   mintMinus: $('mintMinus'), mintPlus: $('mintPlus'), mintQty: $('mintQty'), mintTotal: $('mintTotal'),
-  shopMsg: $('shopMsg'), shopBack: $('shopBack'), gachaShop: $('gachaShop'), certNote: $('certNote'),
-  shopConnect: $('shopConnect'),
+  mintMsg: $('mintMsg'), mintBack: $('mintBack'), gachaMint: $('gachaMint'), certNote: $('certNote'),
+  mintConnect: $('mintConnect'),
   chooseList: $('chooseList'), chooseBack: $('chooseBack'), chooseBoss: $('chooseBoss'),
   collectionNote: $('collectionNote'), collectionBack: $('collectionBack'),
   colCanvas_Momo: $('colCanvasMomo'), colName_Momo: $('colNameMomo'), colNote_Momo: $('colNoteMomo'),
@@ -265,7 +258,7 @@ const els = {
   menuCursor: $('menuCursor'), hillCanvas: $('hillCanvas'), bushCanvas: $('bushCanvas'),
 };
 const SCREENS = ['screenHome', 'screenHowto', 'screenTrainer',
-                 'screenGacha', 'screenLadder', 'screenBattle', 'screenCertified', 'screenCollection', 'screenShop', 'screenChoose'];
+                 'screenGacha', 'screenLadder', 'screenBattle', 'screenCertified', 'screenCollection', 'screenMint', 'screenChoose'];
 function showScreen(id) {
   for (const s of SCREENS) { const el = $(s); if (el) el.hidden = s !== id; }
   if (id === 'screenGacha') syncGacha();
@@ -292,7 +285,7 @@ function paint(canvas, grid, pal, px) {
 const SAVE_KEY = 'squeekArenaV1';
 const REG_KEY = 'squeekArenaPullsV1';
 function defaultState() {
-  return { trainer: null, partner: null, opened: false, xp: 0, defeated: [], certified: false, collection: {}, boxes: 0, wallet: null, pulls: {}, pendingPulls: 0, activeTokenId: null };
+  return { trainer: null, partner: null, opened: false, xp: 0, defeated: [], certified: false, collection: {}, boxes: 0, wallet: null, pulls: {}, activeTokenId: null };
 }
 function storeSigned(key, obj) {
   try { localStorage.setItem(key, JSON.stringify({ d: obj, s: fnv(JSON.stringify(obj) + '|sqk-arena-v1') })); } catch (e) {}
@@ -312,16 +305,6 @@ function loadRegistry() {
   const reg = loadSigned(REG_KEY);
   return reg && reg !== 'TAMPERED' && typeof reg === 'object' ? reg : null;
 }
-// One-time clean slate for the onchain launch (2026-11-04): pets are real
-// NFTs now, so legacy browser-only progress (local gacha partners and the
-// local pull registry) is wiped once, on first load of this build.
-try {
-  if (!localStorage.getItem('squeekArenaChainResetV1')) {
-    localStorage.removeItem(SAVE_KEY);
-    localStorage.removeItem(REG_KEY);
-    localStorage.setItem('squeekArenaChainResetV1', '1');
-  }
-} catch (e) {}
 let S = defaultState();
 {
   const data = loadSigned(SAVE_KEY);
@@ -329,8 +312,6 @@ let S = defaultState();
   const reg = loadRegistry();
   if (reg) S.pulls = reg;
   else if (S.pulls && Object.keys(S.pulls).length) storeSigned(REG_KEY, S.pulls);
-  if ('pendingPullFor' in S) { if (S.pendingPullFor) S.pendingPulls = Math.max(S.pendingPulls || 0, 1); delete S.pendingPullFor; }
-  if (!S.pendingPulls) S.pendingPulls = 0;
 }
 if (S.partner) { if (!S.collection) S.collection = {}; S.collection[S.partner] = true; }
 function save() { storeSigned(SAVE_KEY, S); storeSigned(REG_KEY, S.pulls || {}); }
@@ -418,7 +399,7 @@ els.btnPlay.addEventListener('click', async () => {
 });
 els.btnHowto.addEventListener('click', () => showScreen('screenHowto'));
 els.btnCollection.addEventListener('click', () => showScreen('screenCollection'));
-els.btnShop.addEventListener('click', () => showScreen('screenShop'));
+els.btnMint.addEventListener('click', () => showScreen('screenMint'));
 els.collectionBack.addEventListener('click', () => showScreen('screenHome'));
 els.btnSound.addEventListener('click', () => {
   soundOn = !soundOn;
@@ -441,10 +422,8 @@ function twoStep(btn, label, action) {
 els.btnResetHome.addEventListener('click', () => {
   twoStep(els.btnResetHome, 'Reset progress', () => {
     const keepPulls = S.pulls || {};
-    const keepPending = S.pendingPulls || 0;
     S = defaultState();
     S.pulls = keepPulls; // one pull per wallet survives a progress reset
-    S.pendingPulls = keepPending;
     save(); renderAll();
   });
 });
@@ -563,24 +542,31 @@ function renderCollection() {
 let gachaOpening = false;
 function shortAddr(a) { return a ? a.slice(0, 6) + '..' + a.slice(-4) : ''; }
 function currentPull() { return S.wallet ? pullFor(S.pulls, S.wallet) : null; }
+/* The box opens while the wallet's FREE mint is unused onchain, even if the
+   wallet already owns paid pets. The chain flag rules once it is known;
+   before that, the local pull record stands in for it. */
+function gachaBoxUsed() {
+  return freeMintUsedKnown != null ? freeMintUsedKnown : !!currentPull();
+}
 function syncGacha() {
   const pull = currentPull();
   const hasWallet = !!S.wallet;
   const opened = !!pull;
+  const boxAvail = hasWallet && !gachaBoxUsed();
   els.connectPanel.hidden = hasWallet;
   els.walletChip.hidden = !hasWallet;
   if (hasWallet) els.walletAddr.textContent = shortAddr(S.wallet);
-  els.boxCanvas.hidden = !(hasWallet && !pull);
-  els.prompt.hidden = !(hasWallet && !pull);
-  if (hasWallet && !pull && !gachaOpening) els.prompt.textContent = 'CLICK BOX TO OPEN';
+  els.boxCanvas.hidden = !boxAvail;
+  els.prompt.hidden = !boxAvail;
+  if (boxAvail && !gachaOpening) els.prompt.textContent = 'CLICK BOX TO OPEN';
   els.partnerBox.hidden = !opened;
   els.rays.hidden = !opened;
   els.nav.hidden = false;
   els.gachaNext.hidden = !(opened || S.partner);
   els.usedNote.hidden = !opened;
   if (opened) {
-    els.usedNote.textContent = 'Wallet ' + shortAddr(S.wallet) + ' used its one pull: ' +
-      HAMSTERS[pull.partner].name + '. Recorded on Sepolia.';
+    els.usedNote.textContent = 'Wallet ' + shortAddr(S.wallet) + ' · partner ' +
+      HAMSTERS[pull.partner].name + ' · Recorded on Sepolia.';
   }
   if (opened && HAMSTERS[pull.partner].rare) els.stage.classList.add('jackpot');
   else els.stage.classList.remove('jackpot');
@@ -749,7 +735,7 @@ function burstSparkles(n, big) {
    read back from the contract, so the reveal always matches the NFT. */
 async function startOpening() {
   if (gachaOpening || !S.wallet) return;
-  if (currentPull()) return;
+  if (gachaBoxUsed()) return;
   if (!petLive()) return;
   gachaOpening = true;
   els.prompt.textContent = 'CONFIRM THE MINT IN YOUR WALLET...';
@@ -770,14 +756,14 @@ async function startOpening() {
     const pet = await chainPetOf(S.wallet);
     if (!pet.has || !PET_SPECIES[pet.species]) throw new Error('no pet after mint');
     stopWiggle();
-    revealPet(PET_SPECIES[pet.species]);
+    revealPet(PET_SPECIES[pet.species], usedFree);
   } catch (e) {
     stopWiggle();
     els.prompt.textContent = 'MINT CANCELLED · CLICK BOX TO OPEN';
     gachaOpening = false;
   }
 }
-function revealPet(id) {
+function revealPet(id, usedFree) {
   const rare = HAMSTERS[id].rare;
   if (rare) els.dim.classList.add('on');
   els.prompt.hidden = true;
@@ -788,6 +774,7 @@ function revealPet(id) {
   els.flash.classList.add('on');
   paintOpenedBox();
   setTimeout(() => {
+    if (!usedFree) freeMintUsedKnown = true;
     recordPull(S.pulls, S.wallet, id, Date.now());
     if (S.pulls[S.wallet]) S.pulls[S.wallet].partner = id;
     S.partner = id;
@@ -814,8 +801,8 @@ els.prompt.addEventListener('click', startOpening);
 let mintQty = 1;
 let minting = false;
 function renderMint() {
-  if (!els.shopMsg) return;
-  paint(els.shopBoxCanvas, SPR.box, SPR.boxPal, 4);
+  if (!els.mintMsg) return;
+  paint(els.mintBoxCanvas, SPR.box, SPR.boxPal, 4);
   const freeAvail = freeMintUsedKnown === false;
   if (els.mintQty) {
     els.mintQty.textContent = String(mintQty);
@@ -824,7 +811,7 @@ function renderMint() {
     els.mintMinus.disabled = mintQty <= 1;
     els.mintPlus.disabled = mintQty >= MINT_MAX;
   }
-  els.shopConnect.hidden = !!S.wallet;
+  els.mintConnect.hidden = !!S.wallet;
   const live = !!PET_CONTRACT.address;
   let msg = '', can = false;
   if (!S.wallet) msg = 'Connect your wallet first.';
@@ -832,10 +819,10 @@ function renderMint() {
   else if (minting) msg = 'Minting on Sepolia...';
   else if (freeAvail) { msg = 'Your first mint is FREE · Sepolia testnet.'; can = true; }
   else { msg = 'Ready for wallet ' + shortAddr(S.wallet) + '.'; can = true; }
-  els.shopMsg.textContent = msg;
-  els.shopBuy.disabled = !can;
+  els.mintMsg.textContent = msg;
+  els.mintBuy.disabled = !can;
 }
-els.shopBuy.addEventListener('click', async () => {
+els.mintBuy.addEventListener('click', async () => {
   if (!S.wallet || !PET_CONTRACT.address || minting) return;
   minting = true;
   renderMint();
@@ -844,12 +831,12 @@ els.shopBuy.addEventListener('click', async () => {
     if (!(await ensureSepolia())) throw new Error('wrong chain');
     let remaining = mintQty;
     if (freeMintUsedKnown === false) {
-      els.shopMsg.textContent = 'Confirm the FREE mint in your wallet...';
+      els.mintMsg.textContent = 'Confirm the FREE mint in your wallet...';
       const fh = await ethSend(PET_SEL.freeMint, '0x0');
       if (!(await waitReceipt(fh))) throw new Error('mint failed');
       freeMintUsedKnown = true;
       remaining = mintQty - 1;
-      if (remaining > 0) els.shopMsg.textContent = 'Free pet minted. Confirm ' + remaining + ' more in your wallet...';
+      if (remaining > 0) els.mintMsg.textContent = 'Free pet minted. Confirm ' + remaining + ' more in your wallet...';
     }
     if (remaining > 0) {
       const hash = await ethSend(PET_SEL.mintBatch + encUint(remaining), ethToWeiHex(mintTotalEth(remaining)));
@@ -870,13 +857,13 @@ els.shopBuy.addEventListener('click', async () => {
   } catch (e) { /* resultMsg already says cancelled */ }
   minting = false;
   renderAll();
-  els.shopMsg.textContent = resultMsg;
+  els.mintMsg.textContent = resultMsg;
 });
 els.mintMinus.addEventListener('click', () => { mintQty = Math.max(1, mintQty - 1); renderMint(); });
 els.mintPlus.addEventListener('click', () => { mintQty = Math.min(MINT_MAX, mintQty + 1); renderMint(); });
-els.shopBack.addEventListener('click', () => showScreen('screenHome'));
-els.shopConnect.addEventListener('click', async () => { await connectWallet(); renderAll(); });
-els.gachaShop.addEventListener('click', () => showScreen('screenShop'));
+els.mintBack.addEventListener('click', () => showScreen('screenHome'));
+els.mintConnect.addEventListener('click', async () => { await connectWallet(); renderAll(); });
+els.gachaMint.addEventListener('click', () => showScreen('screenMint'));
 
 /* ---------- pre-battle hamster picker ---------- */
 let pendingBoss = null;
@@ -1178,7 +1165,7 @@ els.shareBtn.addEventListener('click', () => {
   ctx.font = '700 44px "Courier New", monospace';
   ctx.fillText('SQUEEKCHAIN FAMS', 48, 276);
   ctx.font = '26px Verdana, sans-serif';
-  ctx.fillText('All four Squeektoshi forms defeated in the quiz battle ladder.', 48, 336);
+  ctx.fillText('All five arena bosses defeated in the quiz battle ladder.', 48, 336);
   ctx.font = '23px "Courier New", monospace'; ctx.fillStyle = '#4a4a4a';
   const st = playerStats();
   ctx.fillText('Partner: ' + HAMSTERS[S.partner].name + ' · Lv ' + st.level, 48, 396);
@@ -1229,7 +1216,7 @@ const GREEN_PAL = { '#': '#111111' };
 paint(els.hillCanvas, HILL_GRID, GREEN_PAL, 6);
 paint(els.bushCanvas, BUSH_GRID, GREEN_PAL, 6);
 paint(els.menuCursor, SPR.hamsters.momo, SPR.hamsterPals.momo, 1);
-const menuItems = [els.btnPlay, els.btnHowto, els.btnCollection, els.btnShop, els.btnSound, els.btnResetHome];
+const menuItems = [els.btnPlay, els.btnHowto, els.btnCollection, els.btnMint, els.btnSound, els.btnResetHome];
 let menuIdx = 0;
 function setCursor(i) {
   menuIdx = (i + menuItems.length) % menuItems.length;
