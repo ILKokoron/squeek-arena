@@ -1,13 +1,6 @@
 /* Squeek Arena: a Pokemon-style quiz battle ladder against Squeektoshi.
-   Flow (designed with kokoron): pick a trainer (male or female), open the
-   gacha box every player gets, then climb 5 boss levels. Correct answers make
-   your hamster attack; wrong answers let the boss counter. Boss forms get
-   scarier and questions harder per level. AURUM, the 1 in 1000 rare hamster,
-   needs no questions: it attacks directly for the highest damage. Each wallet
-   address gets exactly one free gacha pull, minted as a real NFT by the
-   Squeek Arena Pets contract on Sepolia (extra pulls are paid mints).
-   Beating NOUS shows the certified screen. Battle progress is local; pet
-   ownership is onchain and read back from the contract. */
+   Pick a trainer, mint your gacha hamster (an NFT on Sepolia), climb the
+   5-boss ladder. Battle progress is local; pet ownership is onchain. */
 (function (global) {
 'use strict';
 
@@ -248,9 +241,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = { Logic };
 if (typeof document === 'undefined') return;
 
 /* ============================== UI ============================== */
-/* Screen-based navigation: exactly one screen is visible at a time.
-   home -> howto | trainer -> gacha -> ladder -> choose -> battle -> certified;
-   mint and collection branch off the home menu. */
+/* Screen-based navigation: exactly one screen is visible at a time. */
 const SPR = global.SQUEEK_SPRITES;
 if (!SPR) return;
 const $ = id => document.getElementById(id);
@@ -258,7 +249,7 @@ const els = {
   btnPlay: $('btnPlay'), btnHowto: $('btnHowto'),
   btnCollection: $('btnCollection'), btnSound: $('btnSound'), btnMint: $('btnMint'),
   btnNetwork: $('btnNetwork'), networkBack: $('networkBack'),
-  netBadge: $('netBadge'), netState: $('netState'), netBlock: $('netBlock'),
+  netCanvas: $('netCanvas'), netState: $('netState'), netBlock: $('netBlock'),
   netPace: $('netPace'), netRound: $('netRound'), netSettled: $('netSettled'),
   mintBoxCanvas: $('mintBoxCanvas'), mintBuy: $('mintBuy'),
   mintMinus: $('mintMinus'), mintPlus: $('mintPlus'), mintQty: $('mintQty'), mintTotal: $('mintTotal'),
@@ -303,7 +294,8 @@ function showScreen(id) {
   for (const s of SCREENS) { const el = $(s); if (el) el.hidden = s !== id; }
   renderLandscape(id);
   if (id === 'screenGacha') syncGacha();
-  if (id === 'screenNetwork') { renderNetwork(); refreshLive().then(renderNetwork); }
+  if (id !== 'screenNetwork') stopNetAnim();
+  if (id === 'screenNetwork') { renderNetwork(); startNetAnim(); refreshLive().then(() => { renderNetwork(); drawNetScene(); }); }
   window.scrollTo(0, 0);
 }
 
@@ -1432,9 +1424,7 @@ function renderNetwork() {
   const st = liveSnapshot;
   if (!st) return;
   const running = st.state === 'running';
-  els.netBadge.textContent = running ? 'ON AIR' : 'OFF AIR';
-  els.netBadge.classList.toggle('on', running);
-  els.netState.textContent = running ? 'IS RUNNING' : 'IS SLEEPING';
+  els.netState.textContent = running ? 'SQUEEKTOSHI IS RUNNING!' : 'SQUEEKTOSHI IS SLEEPING.';
   els.netBlock.textContent = st.blockHeight != null ? fmtNum(st.blockHeight) : '-';
   const pace = pacePerHour();
   els.netPace.textContent = pace == null ? '-' : fmtNum(pace);
@@ -1442,6 +1432,96 @@ function renderNetwork() {
     ? fmtNum(Number(st.settledRounds) + Number(st.closedRounds) + 1) : '-';
   els.netSettled.textContent = st.settledRounds != null ? fmtNum(st.settledRounds) : '-';
 }
+/* Network scene: the Sprint side-profile hamster in Arena greys, on his wheel.
+   Running: the wheel spins (faster with the real wheel speed) and his legs
+   alternate. Resting: he sleeps beside the wheel and the Zs float up. */
+const NET_HAMSTER = [
+  '................OOO.......',
+  '...............OBBBO......',
+  '...............OBIBO......',
+  '...............OBIBBOO....',
+  '.........OOOOOOBBBBBBBO...',
+  '......OOOBBBBBBBBBBBBBBO..',
+  '.....OBBBBBBBBBBBBBBBBBBO.',
+  '....OBBBBBBBBBBBBBBBHKBBO.',
+  '...OBBBBBBBBBBBBBBBBKKBBO.',
+  '..OBBBBBBBBBBBBBBBBBKKBBO.',
+  '..OBBBBBBBBBBBBBBBBBBBBBN.',
+  '..OBBBBBBBBBBBBBBBWWWWWBO.',
+  '..OBBBBBBBBBBBBBBCCWWWWOO.',
+  '..OBBBBBBBBBBBBBBWWWWWWO..',
+  '...OBBBBBWBBBBBBBWWWWWO...',
+  '....OBWWWWWWWBBBPPWWOO....',
+  '.....OWWWWWWWWSSSSSO......',
+  '......OOOWWWWSSSOOO.......',
+];
+const NET_LEGS = [
+  ['......OFFO........OFFO....', '.......OO..........OO.....'],
+  ['..........OFFO.OFFO.......', '...........OO...OO........'],
+];
+const NET_PAL = { O: '#141414', B: '#bcbcbc', L: '#d8d8d8', S: '#989898', I: '#e4e4e4', W: '#f6f6f6', K: '#141414', H: '#ffffff', N: '#555555', P: '#c6c6c6', C: '#d2d2d2', F: '#8a8a8a' };
+let netTimer = null, netTick = 0, netAngle = 0;
+function drawNetHamster(ctx, x, y, px, frame) {
+  const rows = NET_HAMSTER.concat(NET_LEGS[frame % 2]);
+  for (let r = 0; r < rows.length; r++) for (let c = 0; c < rows[r].length; c++) {
+    const col = NET_PAL[rows[r][c]];
+    if (!col) continue;
+    ctx.fillStyle = col;
+    ctx.fillRect(x + c * px, y + r * px, px, px);
+  }
+}
+function drawNetScene() {
+  const cv = els.netCanvas;
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width;
+  ctx.clearRect(0, 0, W, cv.height);
+  const running = liveSnapshot && liveSnapshot.state === 'running';
+  const cx = 100, cy = 64, R = 42;
+  ctx.fillStyle = '#141414';
+  ctx.fillRect(10, 118, W - 20, 3);
+  ctx.strokeStyle = '#141414';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx - 24, 118); ctx.moveTo(cx, cy); ctx.lineTo(cx + 24, 118); ctx.stroke();
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 4; i++) {
+    const a = netAngle + i * Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - Math.cos(a) * (R - 3), cy - Math.sin(a) * (R - 3));
+    ctx.lineTo(cx + Math.cos(a) * (R - 3), cy + Math.sin(a) * (R - 3));
+    ctx.stroke();
+  }
+  ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#141414';
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+  if (running) {
+    drawNetHamster(ctx, cx - 26, cy - 2 + (netTick % 2) * 2, 2, netTick % 2);
+  } else {
+    drawNetHamster(ctx, 178, 78, 2, 0);
+    const zRows = ['#####', '...#.', '..#..', '.#...', '#####'];
+    const zGreys = ['#141414', '#6a6a6a', '#a8a8a8', '#c4c4c4', '#d8d8d8', '#e6e6e6'];
+    for (let i = 0; i < 3; i++) {
+      const ph = (netTick + i * 2) % 6;
+      ctx.fillStyle = zGreys[ph];
+      const zx = 238 + i * 16, zy = 68 - ph * 5;
+      for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) if (zRows[r][c] === '#') ctx.fillRect(zx + c * 2, zy + r * 2, 2, 2);
+    }
+  }
+}
+function startNetAnim() {
+  stopNetAnim();
+  drawNetScene();
+  netTimer = setInterval(() => {
+    netTick++;
+    if (liveSnapshot && liveSnapshot.state === 'running') {
+      const kmh = (liveSnapshot.speedMmS || 0) * 0.0036;
+      netAngle += Math.min(0.55, 0.18 + kmh * 0.07);
+    }
+    drawNetScene();
+  }, 140);
+}
+function stopNetAnim() { if (netTimer) { clearInterval(netTimer); netTimer = null; } }
 function refreshLive() {
   if (liveRefreshP) return liveRefreshP;
   const done = () => { liveRefreshP = null; };
