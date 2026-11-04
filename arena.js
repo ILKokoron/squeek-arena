@@ -223,7 +223,7 @@ const els = {
   btnCollection: $('btnCollection'), btnSound: $('btnSound'), btnMint: $('btnMint'),
   mintBoxCanvas: $('mintBoxCanvas'), mintBuy: $('mintBuy'),
   mintMinus: $('mintMinus'), mintPlus: $('mintPlus'), mintQty: $('mintQty'), mintTotal: $('mintTotal'),
-  mintMsg: $('mintMsg'), mintBack: $('mintBack'), gachaMint: $('gachaMint'), certNote: $('certNote'),
+  mintMsg: $('mintMsg'), mintBack: $('mintBack'), certNote: $('certNote'),
   mintConnect: $('mintConnect'),
   chooseList: $('chooseList'), chooseBack: $('chooseBack'), chooseBoss: $('chooseBoss'),
   collectionNote: $('collectionNote'), collectionBack: $('collectionBack'),
@@ -552,22 +552,29 @@ function syncGacha() {
   const pull = currentPull();
   const hasWallet = !!S.wallet;
   const opened = !!pull;
-  const boxAvail = hasWallet && !gachaBoxUsed();
+  // No spoilers: before the free box is opened, the stage never shows a
+  // hamster or a partner name. While the chain flag is still unknown the
+  // stage just says it is checking; the box appears only when the free
+  // mint is confirmed unused, and the reveal only after it is used.
+  const known = freeMintUsedKnown != null;
+  const checking = hasWallet && !known;
+  const boxAvail = hasWallet && known && !freeMintUsedKnown;
+  const showPartner = opened && known && !!freeMintUsedKnown;
   els.connectPanel.hidden = hasWallet;
   els.walletChip.hidden = !hasWallet;
   if (hasWallet) els.walletAddr.textContent = shortAddr(S.wallet);
   els.boxCanvas.hidden = !boxAvail;
-  els.prompt.hidden = !boxAvail;
-  if (boxAvail && !gachaOpening) els.prompt.textContent = 'CLICK BOX TO OPEN';
-  // One state at a time: while the free box is still openable it owns the
-  // stage; the partner reveal takes over once the free mint is used.
-  const showPartner = opened && !boxAvail;
+  els.prompt.hidden = !(boxAvail || checking);
+  if (!gachaOpening) {
+    if (checking) els.prompt.textContent = 'CHECKING SEPOLIA...';
+    else if (boxAvail) els.prompt.textContent = 'CLICK BOX TO OPEN';
+  }
   els.partnerBox.hidden = !showPartner;
   els.rays.hidden = !showPartner;
   els.nav.hidden = false;
   els.gachaNext.hidden = !(opened || S.partner);
-  els.usedNote.hidden = !opened;
-  if (opened) {
+  els.usedNote.hidden = !showPartner;
+  if (showPartner) {
     els.usedNote.textContent = 'Wallet ' + shortAddr(S.wallet) + ' · partner ' +
       HAMSTERS[pull.partner].name + ' · Recorded on Sepolia.';
   }
@@ -866,7 +873,7 @@ els.mintMinus.addEventListener('click', () => { mintQty = Math.max(1, mintQty - 
 els.mintPlus.addEventListener('click', () => { mintQty = Math.min(MINT_MAX, mintQty + 1); renderMint(); });
 els.mintBack.addEventListener('click', () => showScreen('screenHome'));
 els.mintConnect.addEventListener('click', async () => { await connectWallet(); renderAll(); });
-els.gachaMint.addEventListener('click', () => showScreen('screenMint'));
+
 
 /* ---------- pre-battle hamster picker ---------- */
 let pendingBoss = null;
