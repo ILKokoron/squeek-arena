@@ -267,20 +267,41 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
+/* Sprites are rendered once into an offscreen cache and blitted after that:
+   repainting hundreds of single pixels on every render made menus feel heavy. */
+const gridIds = new WeakMap();
+let gridSeq = 0;
+function gridId(g) {
+  let id = gridIds.get(g);
+  if (!id) { id = ++gridSeq; gridIds.set(g, id); }
+  return id;
+}
+const spriteCache = new Map();
 function paint(canvas, grid, pal, px) {
   if (!canvas || !grid) return;
-  canvas.width = grid[0].length * px;
-  canvas.height = grid.length * px;
+  const palKey = Object.keys(pal).sort().map(k => k + '=' + pal[k]).join('|');
+  const key = gridId(grid) + ':' + px + ':' + palKey;
+  let src = spriteCache.get(key);
+  if (!src) {
+    src = document.createElement('canvas');
+    src.width = grid[0].length * px;
+    src.height = grid.length * px;
+    const ctx = src.getContext('2d');
+    for (let y = 0; y < grid.length; y++) {
+      for (let x = 0; x < grid[y].length; x++) {
+        const col = pal[grid[y][x]];
+        if (!col) continue;
+        ctx.fillStyle = col;
+        ctx.fillRect(x * px, y * px, px, px);
+      }
+    }
+    spriteCache.set(key, src);
+  }
+  if (canvas.width !== src.width) canvas.width = src.width;
+  if (canvas.height !== src.height) canvas.height = src.height;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let y = 0; y < grid.length; y++) {
-    for (let x = 0; x < grid[y].length; x++) {
-      const col = pal[grid[y][x]];
-      if (!col) continue;
-      ctx.fillStyle = col;
-      ctx.fillRect(x * px, y * px, px, px);
-    }
-  }
+  ctx.drawImage(src, 0, 0);
 }
 
 /* ---------- persistent state ---------- */
@@ -1302,17 +1323,22 @@ const LAND_VIEWS = {
   screenCertified: [['peak', 'left', 10], ['bush', 'left', 47], ['peak', 'right', 10]],
 };
 const GREEN_PAL = { '#': '#111111' };
+const landCache = {};
 function renderLandscape(screenId) {
   const host = els.groundHills;
   if (!host) return;
-  host.innerHTML = '';
-  for (const item of (LAND_VIEWS[screenId] || LAND_VIEWS.screenHome)) {
-    const cv = document.createElement('canvas');
-    cv.className = 'ground-hill';
-    cv.style[item[1]] = item[2] + '%';
-    paint(cv, LAND_SHAPES[item[0]], GREEN_PAL, 6);
-    host.appendChild(cv);
+  let nodes = landCache[screenId];
+  if (!nodes) {
+    nodes = (LAND_VIEWS[screenId] || LAND_VIEWS.screenHome).map(item => {
+      const cv = document.createElement('canvas');
+      cv.className = 'ground-hill';
+      cv.style[item[1]] = item[2] + '%';
+      paint(cv, LAND_SHAPES[item[0]], GREEN_PAL, 6);
+      return cv;
+    });
+    landCache[screenId] = nodes;
   }
+  host.replaceChildren(...nodes);
 }
 paint(els.menuCursor, SPR.hamsters.momo, SPR.hamsterPals.momo, 1);
 const menuItems = [els.btnPlay, els.btnHowto, els.btnCollection, els.btnMint, els.btnSound];
