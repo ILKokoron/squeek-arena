@@ -357,6 +357,7 @@ body{background:#f4f4f4}
 
 /* ================= Landscape per screen + bounded title clouds ================= */
 .ground-hill{position:absolute;bottom:52px}
+.ground{z-index:-1}
 #screenHome{padding-top:54px}
 #screenHome .cloud{width:74px;height:22px;background:#e0e0e0;opacity:.95;animation:cloudDriftR 8s ease-in-out infinite alternate}
 #screenHome .cloud::before{content:"";position:absolute;left:14px;top:-12px;width:30px;height:12px;background:#e0e0e0}
