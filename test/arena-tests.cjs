@@ -81,10 +81,14 @@ for (const tier of ['dasar', 'menengah', 'sulit', 'ahli']) {
 }
 {
   ok(Logic.buildLiveQuestions(null).length === 0, 'no live questions without status');
-  const snap = { state: 'running', blockHeight: '8431', blockProgressPct: 47.88, distanceMm: 7022244, speedMmS: 812, firstHeight: '8430', closedRounds: '1' };
+  const snap = { state: 'running', blockHeight: '8431', blockProgressPct: 47.88, distanceMm: 7022244, speedMmS: 812, firstHeight: '8430', closedRounds: '1', settledRounds: '1280' };
   const qs = Logic.buildLiveQuestions(snap);
   const texts = qs.map(q => Logic.correctTextOf(q));
-  ok(qs.length === 6, 'full snapshot yields 6 live questions');
+  ok(qs.length === 10, 'full snapshot yields 10 live questions');
+  ok(texts.includes('Block 8,431'), 'exact block height from live status');
+  ok(texts.includes('48% full'), 'exact block fullness from live progress');
+  ok(texts.includes('7.02 km'), 'exact distance from live status');
+  ok(texts.includes('1,280 rounds'), 'exact settled rounds from live status');
   ok(texts.includes('Yes, he is running'), 'wheel state question from live status');
   ok(texts.includes('Partway there, 25 to 50% full'), 'block fullness bucketed from live progress');
   ok(texts.includes('Fast'), 'pace bucketed from live speed');
@@ -98,6 +102,7 @@ for (const tier of ['dasar', 'menengah', 'sulit', 'ahli']) {
   ok(idle.some(q => Logic.correctTextOf(q) === 'Almost done, over 75% full'), 'idle fullness bucket near completion');
   ok(idle.some(q => Logic.correctTextOf(q) === 'Not yet, still on the same block'), 'session question flips when no new block');
   ok(idle.some(q => Logic.correctTextOf(q) === 'No, the queue is clear'), 'settlement question flips when queue empty');
+  ok(idle.some(q => Logic.correctTextOf(q) === 'Block 8,430'), 'exact height question also fires while idle');
 }
 
 console.log('Battle simulations (UI rules mirrored)');
