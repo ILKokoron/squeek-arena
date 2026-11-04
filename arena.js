@@ -119,8 +119,10 @@ function recordPull(pulls, addr, hamsterId, at) {
   pulls[key] = { partner: hamsterId, at: at || 0 };
   return true;
 }
-const PULL_COST = 100;
-function bossTokenReward(boss) { return boss && boss.id === BOSSES.length ? 1000 : 100; }
+/* Pet NFT contract (Squeek Arena Pets, Sepolia). Paste the deployed address
+   here and the mint panel activates: the first pull is a free mint (gas
+   only), extra pulls are paid mints at priceEth. Empty address: not live. */
+const PET_CONTRACT = { address: '', chainId: 11155111, priceEth: '0.002' };
 function bossDamage(boss, liveBuff, rng) {
   rng = rng || Math.random;
   return Math.max(1, Math.round((boss.atk + (liveBuff || 0)) * (0.85 + rng() * 0.3)));
@@ -175,7 +177,7 @@ function buildLiveQuestions(st) {
 const Logic = { BOSSES, HAMSTERS, QUESTIONS, RARE_CHANCE,
                 levelFromXp, statsFor, playerDamage, bossDamage, gachaRoll,
                 shuffle, makeOptions, buildLiveQuestions,
-                normalizeAddress, pullFor, recordPull, PULL_COST, bossTokenReward,
+                normalizeAddress, pullFor, recordPull, PET_CONTRACT,
                 fnv, hashAnswer, encOpt, decOpt, encodeQuestion, correctTextOf };
 if (typeof module !== 'undefined' && module.exports) module.exports = { Logic };
 if (typeof document === 'undefined') return;
@@ -189,7 +191,7 @@ const $ = id => document.getElementById(id);
 const els = {
   btnPlay: $('btnPlay'), btnHowto: $('btnHowto'), btnResetHome: $('btnResetHome'),
   btnCollection: $('btnCollection'), btnSound: $('btnSound'), btnShop: $('btnShop'),
-  shopBalance: $('shopBalance'), shopBoxCanvas: $('shopBoxCanvas'), shopBuy: $('shopBuy'),
+  shopBoxCanvas: $('shopBoxCanvas'), shopBuy: $('shopBuy'),
   shopMsg: $('shopMsg'), shopBack: $('shopBack'), gachaShop: $('gachaShop'), certNote: $('certNote'),
   shopConnect: $('shopConnect'),
   collectionNote: $('collectionNote'), collectionBack: $('collectionBack'),
@@ -251,7 +253,7 @@ function paint(canvas, grid, pal, px) {
 const SAVE_KEY = 'squeekArenaV1';
 const REG_KEY = 'squeekArenaPullsV1';
 function defaultState() {
-  return { trainer: null, partner: null, opened: false, xp: 0, defeated: [], certified: false, collection: {}, boxes: 0, wallet: null, pulls: {}, tokens: 0, pendingPulls: 0 };
+  return { trainer: null, partner: null, opened: false, xp: 0, defeated: [], certified: false, collection: {}, boxes: 0, wallet: null, pulls: {}, pendingPulls: 0 };
 }
 function storeSigned(key, obj) {
   try { localStorage.setItem(key, JSON.stringify({ d: obj, s: fnv(JSON.stringify(obj) + '|sqk-arena-v1') })); } catch (e) {}
@@ -314,7 +316,7 @@ function renderAll() {
   }
   syncGacha();
   renderCollection();
-  renderShop();
+  renderMint();
   if (!S.wallet) els.btnPlay.textContent = 'CONNECT WALLET';
   else if (S.certified || S.partner) els.btnPlay.textContent = 'CONTINUE';
   else els.btnPlay.textContent = 'PLAY';
@@ -652,29 +654,24 @@ function startOpening() {
 els.boxCanvas.addEventListener('click', startOpening);
 els.prompt.addEventListener('click', startOpening);
 
-/* ---------- shop: extra gacha pulls for tokens ---------- */
-function renderShop() {
-  if (!els.shopBalance) return;
-  els.shopBalance.textContent = String(S.tokens || 0);
+/* ---------- mint panel: extra gacha pulls as Sepolia pet NFTs ---------- */
+function renderMint() {
+  if (!els.shopMsg) return;
   paint(els.shopBoxCanvas, SPR.box, SPR.boxPal, 4);
   els.shopConnect.hidden = !!S.wallet;
+  const live = !!PET_CONTRACT.address;
   let msg = '', can = false;
   if (!S.wallet) msg = els.walletMsg.textContent || '';
   else if (!currentPull()) msg = 'This wallet still has its FREE pull. Use it on the gacha step first.';
-  else if ((S.pendingPulls || 0) > 0) msg = 'A paid pull is already waiting. Open it on the gacha step.';
-  else if ((S.tokens || 0) < PULL_COST) msg = 'Not enough tokens. Beat bosses to earn more.';
+  else if ((S.pendingPulls || 0) > 0) msg = 'A pull is already waiting. Open it on the gacha step.';
+  else if (!live) msg = 'Pet contract is not live yet. Mint opens at launch.';
   else { msg = 'Ready for wallet ' + shortAddr(S.wallet) + '.'; can = true; }
   els.shopMsg.textContent = msg;
   els.shopBuy.disabled = !can;
 }
-els.shopBuy.addEventListener('click', () => {
+els.shopBuy.addEventListener('click', async () => {
   if (!S.wallet || !currentPull() || (S.pendingPulls || 0) > 0) return;
-  if ((S.tokens || 0) < PULL_COST) return;
-  S.tokens -= PULL_COST;
-  S.pendingPulls = 1;
-  save();
-  renderAll();
-  showScreen('screenGacha');
+  if (!PET_CONTRACT.address) return; // the paidMint call lands here with the deployed address
 });
 els.shopBack.addEventListener('click', () => showScreen('screenHome'));
 els.shopConnect.addEventListener('click', async () => { await connectWallet(); renderAll(); });
@@ -870,14 +867,11 @@ els.run.addEventListener('click', () => {
   renderAll();
   showScreen('screenLadder');
 });
-let lastReward = 0;
 function winBattle() {
   if (!battle) return;
   sfx('win');
   const boss = battle.boss;
   const firstClear = !S.defeated.includes(boss.id);
-  lastReward = firstClear ? bossTokenReward(boss) : 0; // tokens pay once per boss, replays are practice
-  S.tokens = (S.tokens || 0) + lastReward;
   if (firstClear) S.defeated.push(boss.id);
   S.xp += firstClear ? (HAMSTERS[S.partner].rare ? 80 : 60) : 15;
   const finalBoss = boss.id === BOSSES.length;
@@ -889,7 +883,7 @@ function winBattle() {
   showScreen('screenLadder');
   els.summary.textContent = boss.name + ' goes down! ' + HAMSTERS[S.partner].name +
     ' climbs to Lv ' + playerStats().level + '.' +
-    (lastReward > 0 ? ' Reward: +' + lastReward + ' tokens.' : ' Replay clear: no token reward.') +
+    (firstClear ? '' : ' Replay clear.') +
     ' On to the next boss.';
 }
 function loseBattle() {
@@ -906,10 +900,6 @@ function loseBattle() {
 
 /* ---------- certified ---------- */
 function showCertified() {
-  if (lastReward > 0) {
-    els.certNote.textContent = 'All four forms defeated. Final boss reward: +' + lastReward +
-      ' tokens. Save your card. Local fun, not an onchain record.';
-  }
   paint($('arenaCertPartner'), SPR.hamsters[S.partner], SPR.hamsterPals[S.partner], 5);
   paint($('arenaCertTrainer'), SPR.trainers[S.trainer], SPR.trainerPal, 4);
   showScreen('screenCertified');
