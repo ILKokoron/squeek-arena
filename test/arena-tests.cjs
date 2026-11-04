@@ -80,21 +80,24 @@ for (const tier of ['dasar', 'menengah', 'sulit', 'ahli']) {
   ok(qs.every(q => Logic.makeOptions(q, () => 0).includes(Logic.correctTextOf(q))), tier + ' correct answer survives the codec');
 }
 {
-  const live = Logic.buildLiveQuestions({ state: 'running', blockHeight: '8400', blockProgressPct: 30 });
-  ok(live.length === 3 && Logic.correctTextOf(live[0]) === '8400' && Logic.correctTextOf(live[1]) === 'Yes, he is running', 'live questions built from status');
   ok(Logic.buildLiveQuestions(null).length === 0, 'no live questions without status');
-  const snap = { state: 'running', blockHeight: '8430', blockProgressPct: 47.88, distanceMm: 7022244, speedMmS: 812, workUnits: '92730', settledRounds: '1278' };
+  const snap = { state: 'running', blockHeight: '8431', blockProgressPct: 47.88, distanceMm: 7022244, speedMmS: 812, firstHeight: '8430', closedRounds: '1' };
   const qs = Logic.buildLiveQuestions(snap);
   const texts = qs.map(q => Logic.correctTextOf(q));
-  ok(qs.length === 7, 'full snapshot yields 7 live questions');
-  ok(texts.includes('About 7.0 km'), 'distance question uses live km');
-  ok(texts.includes('92,730 units'), 'work question uses live work units');
-  ok(texts.includes('1,278'), 'rounds question uses settled rounds');
-  ok(texts.includes('About 2.9 km/h'), 'speed question converts to km/h');
+  ok(qs.length === 6, 'full snapshot yields 6 live questions');
+  ok(texts.includes('Yes, he is running'), 'wheel state question from live status');
+  ok(texts.includes('Partway there, 25 to 50% full'), 'block fullness bucketed from live progress');
+  ok(texts.includes('Fast'), 'pace bucketed from live speed');
+  ok(texts.includes('Yes, he is at about 7.0 km'), 'distance milestone from live distance');
+  ok(texts.includes('Yes, at least one new block'), 'session block question compares first height');
+  ok(texts.includes('Yes, one is waiting'), 'settlement queue question from live queue');
   ok(qs.every(q => q.o.length === 4 && new Set(q.o).size === 4), 'live questions have 4 unique options');
-  const idle = Logic.buildLiveQuestions({ state: 'idle', blockHeight: '8430', blockProgressPct: 10, distanceMm: 7022244, speedMmS: 0, workUnits: '92730', settledRounds: '1278' });
-  ok(!idle.some(q => q.q.includes('fast')), 'no speed question while resting');
-  ok(idle.some(q => Logic.correctTextOf(q) === 'No, he is resting'), 'idle running question flips');
+  const idle = Logic.buildLiveQuestions({ state: 'idle', blockHeight: '8430', blockProgressPct: 82, distanceMm: 7022244, speedMmS: 0, firstHeight: '8430', closedRounds: '0' });
+  ok(!idle.some(q => q.q.includes('running right now')), 'no pace question while resting');
+  ok(idle.some(q => Logic.correctTextOf(q) === 'No, he is resting'), 'idle wheel question flips');
+  ok(idle.some(q => Logic.correctTextOf(q) === 'Almost done, over 75% full'), 'idle fullness bucket near completion');
+  ok(idle.some(q => Logic.correctTextOf(q) === 'Not yet, still on the same block'), 'session question flips when no new block');
+  ok(idle.some(q => Logic.correctTextOf(q) === 'No, the queue is clear'), 'settlement question flips when queue empty');
 }
 
 console.log('Battle simulations (UI rules mirrored)');
