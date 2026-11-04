@@ -189,11 +189,6 @@ body{background:#5c94fc}
 .topbar .brand h1,.brand h1{font-family:"Press Start 2P",monospace;font-size:clamp(17px,4.5vw,24px);color:#fff;text-shadow:3px 3px 0 rgba(0,0,0,.35);letter-spacing:1px}
 .tagline{color:#eaf2ff}
 .hud{display:flex;justify-content:space-between;gap:10px;font-family:"Press Start 2P",monospace;font-size:clamp(9px,2.6vw,12px);color:#fff;text-shadow:2px 2px 0 rgba(0,0,0,.35);padding:8px 4px 2px}
-.cloud{position:fixed;top:84px;left:0;width:74px;height:22px;background:#fff;z-index:0;opacity:.95;animation:drift 58s linear infinite}
-.cloud::before{content:"";position:absolute;left:14px;top:-12px;width:30px;height:12px;background:#fff}
-.cloud::after{content:"";position:absolute;left:38px;top:-7px;width:22px;height:7px;background:#fff}
-.cloud-b{top:138px;transform:scale(.65);animation-duration:88s;animation-delay:-40s}
-@keyframes drift{from{translate:-18vw 0}to{translate:112vw 0}}
 .screen{animation:screenIn .22s steps(4)}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .screen h2{font-family:"Press Start 2P",monospace;font-size:15px;line-height:1.6}
@@ -210,8 +205,7 @@ body{background:#5c94fc}
 .menu-item:hover,.menu-item.focused{color:#ffe9c9}
 .menu-cursor{position:absolute;left:0;top:0;width:30px;height:38px;transition:top .12s steps(3);animation:bob .5s steps(2) infinite}
 .ground{height:64px;margin-top:12px;position:relative;background-color:#9c5a24;background-image:linear-gradient(#79c94f,#79c94f),repeating-linear-gradient(90deg,rgba(60,30,5,.35) 0 2px,transparent 2px 36px),repeating-linear-gradient(0deg,rgba(60,30,5,.3) 0 2px,transparent 2px 18px);background-size:100% 12px,100% calc(100% - 12px),100% calc(100% - 12px);background-position:top,0 12px,0 12px;background-repeat:no-repeat,repeat,repeat}
-.hill{position:absolute;left:26px;bottom:52px}
-.bush{position:absolute;right:30px;bottom:52px}
+
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 .anim-bob{animation:bob .55s steps(2) infinite}
 .pk-lunge-r{animation:lungeR .45s steps(6)}
@@ -360,3 +354,14 @@ body{background:#f4f4f4}
 #chooseList::-webkit-scrollbar-track{background:#e8e8e8;border:2px solid #111}
 #chooseList::-webkit-scrollbar-thumb{background:#111}
 #chooseList .arena-boss-card:first-child{margin-top:0}
+
+/* ================= Landscape per screen + bounded title clouds ================= */
+.ground-hill{position:absolute;bottom:52px}
+#screenHome .cloud{width:74px;height:22px;background:#e0e0e0;opacity:.95;animation:cloudDriftR 8s ease-in-out infinite alternate}
+#screenHome .cloud::before{content:"";position:absolute;left:14px;top:-12px;width:30px;height:12px;background:#e0e0e0}
+#screenHome .cloud::after{content:"";position:absolute;left:38px;top:-7px;width:22px;height:7px;background:#e0e0e0}
+#screenHome .cloud-a{top:12px;left:4%}
+#screenHome .cloud-b{top:72px;left:auto;right:5%;transform:scale(.65);animation-name:cloudDriftL;animation-duration:10s;animation-delay:-4s}
+#screenHome .cloud-c{top:38px;left:36%;transform:scale(.45);animation-duration:12s;animation-delay:-7s}
+@keyframes cloudDriftR{from{translate:0 0}to{translate:42px 0}}
+@keyframes cloudDriftL{from{translate:0 0}to{translate:-42px 0}}
