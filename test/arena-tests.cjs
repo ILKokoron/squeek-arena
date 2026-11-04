@@ -67,7 +67,7 @@ ok(Logic.mintTotalEth(10) === '0.020', 'ten mints total 0.020 ETH');
 ok(Logic.MINT_MAX === 10, 'the quantity picker caps at 10 per mint');
 ok(Logic.BOSSES.length === 5, 'the ladder has 5 bosses');
 ok(Logic.BOSSES.map(b => b.level).join(',') === '1,2,3,4,5', 'boss levels run 1 to 5');
-ok(Logic.BOSSES.map(b => b.name).join(',') === 'BRAGI,THOTH,SARASWATI,ATHENA,NOUS', 'bosses are knowledge gods, weakest to wisest');
+ok(Logic.BOSSES.map(b => b.name).join(',') === 'BRAGI,THOTH,SARASWATI,ENKI,NOUS', 'bosses are knowledge gods, weakest to wisest');
 
 console.log('Questions');
 for (const tier of ['dasar', 'menengah', 'sulit', 'ahli']) {
