@@ -260,6 +260,7 @@ const els = {
 const SCREENS = ['screenHome', 'screenHowto', 'screenTrainer',
                  'screenGacha', 'screenLadder', 'screenBattle', 'screenCertified', 'screenCollection', 'screenMint', 'screenChoose'];
 function showScreen(id) {
+  if (id !== 'screenGacha') ceremonySpecies = null;
   for (const s of SCREENS) { const el = $(s); if (el) el.hidden = s !== id; }
   if (id === 'screenGacha') syncGacha();
   window.scrollTo(0, 0);
@@ -540,6 +541,7 @@ function renderCollection() {
 
 /* ---------- gacha ---------- */
 let gachaOpening = false;
+let ceremonySpecies = null;
 function shortAddr(a) { return a ? a.slice(0, 6) + '..' + a.slice(-4) : ''; }
 function currentPull() { return S.wallet ? pullFor(S.pulls, S.wallet) : null; }
 /* The box opens while the wallet's FREE mint is unused onchain, even if the
@@ -559,7 +561,7 @@ function syncGacha() {
   const known = freeMintUsedKnown != null;
   const checking = hasWallet && !known;
   const boxAvail = hasWallet && known && !freeMintUsedKnown;
-  const showPartner = opened && known && !!freeMintUsedKnown;
+  const showPartner = !!ceremonySpecies || (opened && known && !!freeMintUsedKnown);
   els.connectPanel.hidden = hasWallet;
   els.walletChip.hidden = !hasWallet;
   if (hasWallet) els.walletAddr.textContent = shortAddr(S.wallet);
@@ -766,14 +768,14 @@ async function startOpening() {
     const pet = await chainPetOf(S.wallet);
     if (!pet.has || !PET_SPECIES[pet.species]) throw new Error('no pet after mint');
     stopWiggle();
-    revealPet(PET_SPECIES[pet.species], usedFree);
+    revealPet(PET_SPECIES[pet.species], !usedFree);
   } catch (e) {
     stopWiggle();
     els.prompt.textContent = 'MINT CANCELLED · CLICK BOX TO OPEN';
     gachaOpening = false;
   }
 }
-function revealPet(id, usedFree) {
+function revealPet(id, consumedFree) {
   const rare = HAMSTERS[id].rare;
   if (rare) els.dim.classList.add('on');
   els.prompt.hidden = true;
@@ -784,7 +786,7 @@ function revealPet(id, usedFree) {
   els.flash.classList.add('on');
   paintOpenedBox();
   setTimeout(() => {
-    if (!usedFree) freeMintUsedKnown = true;
+    if (consumedFree) freeMintUsedKnown = true;
     recordPull(S.pulls, S.wallet, id, Date.now());
     if (S.pulls[S.wallet]) S.pulls[S.wallet].partner = id;
     S.partner = id;
@@ -806,6 +808,27 @@ function revealPet(id, usedFree) {
 }
 els.boxCanvas.addEventListener('click', startOpening);
 els.prompt.addEventListener('click', startOpening);
+
+/* A mint from the panel gets the same reveal ceremony as the gacha box:
+   over to the gacha stage, wiggle the closed box, then the shared pop. */
+function celebrateMint(id, consumedFree) {
+  ceremonySpecies = id;
+  showScreen('screenGacha');
+  paint(els.boxCanvas, SPR.box, SPR.boxPal, 7);
+  els.boxCanvas.hidden = false;
+  els.partnerBox.hidden = true;
+  els.rays.hidden = true;
+  els.usedNote.hidden = true;
+  els.prompt.hidden = false;
+  els.prompt.textContent = 'OPENING...';
+  els.boxCanvas.classList.add('gacha-wiggle-hard');
+  const tickInt = setInterval(() => sfx('tick'), 110);
+  setTimeout(() => {
+    clearInterval(tickInt);
+    els.boxCanvas.classList.remove('gacha-wiggle-hard');
+    revealPet(id, consumedFree);
+  }, 750);
+}
 
 /* ---------- mint panel: extra gacha pulls as Sepolia pet NFTs ---------- */
 let mintQty = 1;
@@ -840,11 +863,13 @@ els.mintBuy.addEventListener('click', async () => {
   try {
     if (!(await ensureSepolia())) throw new Error('wrong chain');
     let remaining = mintQty;
+    let consumedFree = false;
     if (freeMintUsedKnown === false) {
       els.mintMsg.textContent = 'Confirm the FREE mint in your wallet...';
       const fh = await ethSend(PET_SEL.freeMint, '0x0');
       if (!(await waitReceipt(fh))) throw new Error('mint failed');
       freeMintUsedKnown = true;
+      consumedFree = true;
       remaining = mintQty - 1;
       if (remaining > 0) els.mintMsg.textContent = 'Free pet minted. Confirm ' + remaining + ' more in your wallet...';
     }
@@ -862,7 +887,9 @@ els.mintBuy.addEventListener('click', async () => {
       S.collection[id] = true;
       save();
       await syncChainState();
-      resultMsg = 'Minted ' + mintQty + '! Newest partner: ' + HAMSTERS[id].name + '.';
+      minting = false;
+      celebrateMint(id, consumedFree);
+      return;
     }
   } catch (e) { /* resultMsg already says cancelled */ }
   minting = false;
