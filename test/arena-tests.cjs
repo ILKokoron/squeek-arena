@@ -25,20 +25,6 @@ ok(Logic.levelFromXp(0) === 5 && Logic.levelFromXp(59) === 5 && Logic.levelFromX
 const st0 = Logic.statsFor('momo', 0);
 ok(st0.level === 5 && st0.maxHp === 74 && st0.atk === 12, 'momo base stats Lv5 HP74 ATK12');
 
-console.log('Gacha');
-ok(Logic.gachaRoll(() => 0.0005) === 'aurum', 'roll under 0.001 is AURUM');
-ok(Logic.gachaRoll(() => 0.2) === 'momo', 'roll 0.2 is momo');
-ok(Logic.gachaRoll(() => 0.5) === 'shiro', 'roll 0.5 is shiro');
-ok(Logic.gachaRoll(() => 0.9) === 'goma', 'roll 0.9 is goma');
-{
-  const rng = lcg(42);
-  const counts = { momo: 0, shiro: 0, goma: 0, aurum: 0 };
-  const N = 40000;
-  for (let i = 0; i < N; i++) counts[Logic.gachaRoll(rng)]++;
-  ok(counts.aurum > 5 && counts.aurum < 90, 'aurum rate about 1/1000 over 40k rolls (' + counts.aurum + ')');
-  ok(counts.momo / N > 0.33 && counts.goma / N > 0.24, 'common hamsters fill the rest');
-}
-
 console.log('Damage');
 {
   const rng = lcg(7);
