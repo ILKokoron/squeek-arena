@@ -169,8 +169,7 @@ function correctTextOf(question) { for (const o of question.o) { const t = decOp
 function makeOptions(question, rng) {
   return shuffle(question.o.map(decOpt), rng);
 }
-/* Live questions come from the chain snapshot at battle start: state
-   buckets plus exact figures read straight off the live status. */
+/* Live questions: state buckets plus exact figures from the live status. */
 function buildLiveQuestions(st) {
   if (!st) return [];
   const out = [];
@@ -246,10 +245,26 @@ function buildLiveQuestions(st) {
   }
   return out;
 }
+function isLiveQ(q) { return !!(q && typeof q.q === 'string' && q.q.indexOf('LIVE:') === 0); }
+/* The freshest copy of the same live question, or null. */
+function freshVersionOf(q, freshQs) {
+  if (!isLiveQ(q) || !Array.isArray(freshQs)) return null;
+  return freshQs.find(f => f.q === q.q) || null;
+}
+/* Grading a live answer uses the chain as it is at answer time: if the
+   same question regenerated fresh has a different correct answer and that
+   answer was among the options shown, it wins; else the original key. */
+function freshGradeText(q, freshQs, shownOptions) {
+  const fresh = freshVersionOf(q, freshQs);
+  if (!fresh) return null;
+  const c = correctTextOf(fresh);
+  if (!c || c === correctTextOf(q)) return null;
+  return shownOptions && shownOptions.indexOf(c) >= 0 ? c : null;
+}
 
 const Logic = { BOSSES, HAMSTERS, QUESTIONS, RARE_CHANCE,
                 levelFromXp, statsFor, playerDamage, bossDamage,
-                shuffle, makeOptions, buildLiveQuestions,
+                shuffle, makeOptions, buildLiveQuestions, isLiveQ, freshVersionOf, freshGradeText,
                 normalizeAddress, pullFor, recordPull, PET_CONTRACT, mintTotalEth, mintChargeEth, MINT_MAX,
                 PET_SPECIES, PET_SEL, encAddress, encUint, decodePetOf, decodeBool,
                 decodeUintArray, ethToWei, ethToWeiHex,
@@ -1103,7 +1118,21 @@ function nextTurn() {
     if (battle.pool.length > 1 && battle.pool[0] === battle.lastQ) { const t = battle.pool[0]; battle.pool[0] = battle.pool[1]; battle.pool[1] = t; }
     battle.qi = 0;
   }
-  const q = battle.pool[battle.qi++];
+  const picked = battle.pool[battle.qi++];
+  if (isLiveQ(picked)) {
+/* Live questions re-read the chain at show time. */
+    const b = battle;
+    battle.phase = 'fetch';
+    refreshLive().then(() => {
+      if (battle !== b || b.phase !== 'fetch') return;
+      showQuestion(freshVersionOf(picked, liveQuestions) || picked);
+    });
+    return;
+  }
+  showQuestion(picked);
+}
+function showQuestion(q) {
+  battle.phase = 'question';
   battle.q = q;
   battle.lastQ = q;
   battle.correctText = correctTextOf(q);
@@ -1151,12 +1180,26 @@ function answer(choice) {
   if (!battle || battle.phase !== 'question') return;
   battle.phase = 'anim';
   lockAnswers();
-  const expired = (Date.now() - battle.qStart) / 1000 > battle.boss.seconds;
-  if (expired) choice = null;
-  const correct = choice != null && hashAnswer(choice) === battle.q.h;
+  const elapsed = (Date.now() - battle.qStart) / 1000; /* judged at click time */
+  if (elapsed > battle.boss.seconds) choice = null;
+  if (choice != null && isLiveQ(battle.q)) {
+    /* Grade against the chain right now, not question-time data. */
+    const b = battle;
+    const shown = Array.from(els.answers.children).map(x => x.textContent);
+    refreshLive().then(() => {
+      if (battle !== b) return;
+      resolveAnswer(choice, freshGradeText(b.q, liveQuestions, shown), elapsed);
+    });
+    return;
+  }
+  resolveAnswer(choice, null, elapsed);
+}
+function resolveAnswer(choice, freshText, elapsed) {
+  const correct = choice != null && (freshText != null ? choice === freshText : hashAnswer(choice) === battle.q.h);
+  if (freshText != null) battle.correctText = freshText;
   if (correct) {
     battle.streak++;
-    const fast = (Date.now() - battle.qStart) / 1000 < battle.boss.seconds * 0.4;
+    const fast = elapsed < battle.boss.seconds * 0.4;
     const out = {};
     const dmg = playerDamage(S.partner, S.xp, { streak: battle.streak, fast, out });
     battle.bossHp -= dmg;
