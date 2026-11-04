@@ -4,9 +4,10 @@
    your hamster attack; wrong answers let the boss counter. Boss forms get
    scarier and questions harder per level. AURUM, the 1 in 1000 rare hamster,
    needs no questions: it attacks directly for the highest damage. Each wallet
-   address gets exactly one gacha pull, recorded locally in the browser.
-   Beating NOUS shows the certified screen. Progress is local only and
-   never claimed to be onchain. */
+   address gets exactly one free gacha pull, minted as a real NFT by the
+   Squeek Arena Pets contract on Sepolia (extra pulls are paid mints).
+   Beating NOUS shows the certified screen. Battle progress is local; pet
+   ownership is onchain and read back from the contract. */
 (function (global) {
 'use strict';
 
@@ -119,12 +120,43 @@ function recordPull(pulls, addr, hamsterId, at) {
   pulls[key] = { partner: hamsterId, at: at || 0 };
   return true;
 }
-/* Pet NFT contract (Squeek Arena Pets, Sepolia). Paste the deployed address
-   here and the mint panel activates: the first pull is a free mint (gas
-   only), extra pulls are paid mints at priceEth. Empty address: not live. */
-const PET_CONTRACT = { address: '', chainId: 11155111, priceEth: '0.002' };
+/* Pet NFT contract (Squeek Arena Pets, Sepolia, deployed 2026-11-04).
+   The first pull is a free mint (gas only), extra pulls are paid mints at
+   priceEth. The contract rolls the species at mint time, so the hamster
+   revealed in the gacha is always the exact pet that was minted. */
+const PET_CONTRACT = { address: '0x3ac243475b0D782a05B40Eb9546E25bb986BB6DD', chainId: 11155111, priceEth: '0.002' };
 const MINT_MAX = 10;
 function mintTotalEth(qty) { return (qty * Number(PET_CONTRACT.priceEth)).toFixed(3); }
+const PET_SPECIES = ['momo', 'shiro', 'goma', 'aurum'];
+const PET_SEL = { freeMint: '0x5b70ea9f', mintBatch: '0x20e409b4', petOf: '0xa8379ea2',
+                  freeMintUsed: '0x456cc814', tokensOf: '0x5a3f2672', speciesOf: '0xd27b3930' };
+function encAddress(a) { return normalizeAddress(a).slice(2).padStart(64, '0'); }
+function encUint(n) { return BigInt(n).toString(16).padStart(64, '0'); }
+function wordAt(hex, i) { const h = String(hex || '').replace(/^0x/, ''); return h.slice(i * 64, i * 64 + 64) || '0'; }
+function decodePetOf(hex) {
+  if (!hex || String(hex).length < 194) return { tokenId: 0, species: 0, has: false };
+  return { tokenId: Number(BigInt('0x' + wordAt(hex, 0))),
+           species: Number(BigInt('0x' + wordAt(hex, 1))),
+           has: BigInt('0x' + wordAt(hex, 2)) !== 0n };
+}
+function decodeBool(hex) {
+  if (!hex || hex === '0x') return false;
+  try { return BigInt(hex) !== 0n; } catch (e) { return false; }
+}
+function decodeUintArray(hex) {
+  if (!hex || String(hex).length < 130) return [];
+  const len = Number(BigInt('0x' + wordAt(hex, 1)));
+  const out = [];
+  for (let i = 0; i < len && i < 200; i++) out.push(Number(BigInt('0x' + wordAt(hex, 2 + i))));
+  return out;
+}
+function ethToWei(str) {
+  const parts = String(str).split('.');
+  const whole = parts[0] || '0';
+  const frac = ((parts[1] || '') + '000000000000000000').slice(0, 18);
+  return BigInt(whole) * (10n ** 18n) + BigInt(frac || '0');
+}
+function ethToWeiHex(str) { return '0x' + ethToWei(str).toString(16); }
 function bossDamage(boss, liveBuff, rng) {
   rng = rng || Math.random;
   return Math.max(1, Math.round((boss.atk + (liveBuff || 0)) * (0.85 + rng() * 0.3)));
@@ -180,6 +212,8 @@ const Logic = { BOSSES, HAMSTERS, QUESTIONS, RARE_CHANCE,
                 levelFromXp, statsFor, playerDamage, bossDamage, gachaRoll,
                 shuffle, makeOptions, buildLiveQuestions,
                 normalizeAddress, pullFor, recordPull, PET_CONTRACT, mintTotalEth, MINT_MAX,
+                PET_SPECIES, PET_SEL, encAddress, encUint, decodePetOf, decodeBool,
+                decodeUintArray, ethToWei, ethToWeiHex,
                 fnv, hashAnswer, encOpt, decOpt, encodeQuestion, correctTextOf };
 if (typeof module !== 'undefined' && module.exports) module.exports = { Logic };
 if (typeof document === 'undefined') return;
@@ -524,18 +558,19 @@ function renderCollection() {
 }
 
 /* ---------- gacha ---------- */
+let gachaOpening = false;
 function shortAddr(a) { return a ? a.slice(0, 6) + '..' + a.slice(-4) : ''; }
 function currentPull() { return S.wallet ? pullFor(S.pulls, S.wallet) : null; }
 function syncGacha() {
   const pull = currentPull();
   const hasWallet = !!S.wallet;
-  const pending = hasWallet && (S.pendingPulls || 0) > 0;
-  const opened = !!pull && !pending;
+  const opened = !!pull;
   els.connectPanel.hidden = hasWallet;
   els.walletChip.hidden = !hasWallet;
   if (hasWallet) els.walletAddr.textContent = shortAddr(S.wallet);
-  els.boxCanvas.hidden = !(hasWallet && (!pull || pending));
-  els.prompt.hidden = !(hasWallet && (!pull || pending));
+  els.boxCanvas.hidden = !(hasWallet && !pull);
+  els.prompt.hidden = !(hasWallet && !pull);
+  if (hasWallet && !pull && !gachaOpening) els.prompt.textContent = 'CLICK BOX TO OPEN';
   els.partnerBox.hidden = !opened;
   els.rays.hidden = !opened;
   els.nav.hidden = false;
@@ -543,7 +578,7 @@ function syncGacha() {
   els.usedNote.hidden = !opened;
   if (opened) {
     els.usedNote.textContent = 'Wallet ' + shortAddr(S.wallet) + ' used its one pull: ' +
-      HAMSTERS[pull.partner].name + '. One pull per wallet, recorded in this browser.';
+      HAMSTERS[pull.partner].name + '. Recorded on Sepolia.';
   }
   if (opened && HAMSTERS[pull.partner].rare) els.stage.classList.add('jackpot');
   else els.stage.classList.remove('jackpot');
@@ -553,6 +588,63 @@ function setWallet(addr) {
   const pull = currentPull();
   if (pull) { S.partner = pull.partner; S.opened = true; }
   save();
+  renderAll();
+  syncChainState();
+}
+
+/* ---------- onchain pets: raw JSON-RPC through the connected wallet ---------- */
+function petLive() { return !!(PET_CONTRACT.address && WIN.ethereum && typeof WIN.ethereum.request === 'function'); }
+async function ethCall(data) {
+  return WIN.ethereum.request({ method: 'eth_call', params: [{ to: PET_CONTRACT.address, data }, 'latest'] });
+}
+async function ethSend(data, valueHex) {
+  return WIN.ethereum.request({ method: 'eth_sendTransaction', params: [{ from: S.wallet, to: PET_CONTRACT.address, data, value: valueHex || '0x0' }] });
+}
+async function ensureSepolia() {
+  const id = await WIN.ethereum.request({ method: 'eth_chainId' });
+  if (parseInt(id, 16) === PET_CONTRACT.chainId) return true;
+  try {
+    await WIN.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x' + PET_CONTRACT.chainId.toString(16) }] });
+  } catch (e) { return false; }
+  const id2 = await WIN.ethereum.request({ method: 'eth_chainId' });
+  return parseInt(id2, 16) === PET_CONTRACT.chainId;
+}
+async function waitReceipt(hash) {
+  for (let i = 0; i < 90; i++) {
+    const r = await WIN.ethereum.request({ method: 'eth_getTransactionReceipt', params: [hash] }).catch(() => null);
+    if (r) return r.status === '0x1';
+    await new Promise(res => setTimeout(res, 2000));
+  }
+  return false;
+}
+async function chainPetOf(addr) { return decodePetOf(await ethCall(PET_SEL.petOf + encAddress(addr))); }
+async function chainFreeUsed(addr) { return decodeBool(await ethCall(PET_SEL.freeMintUsed + encAddress(addr))); }
+let chainSyncing = false;
+async function syncChainState() {
+  if (!petLive() || !S.wallet || chainSyncing) return;
+  chainSyncing = true;
+  try {
+    if (!(await ensureSepolia())) return;
+    const pet = await chainPetOf(S.wallet);
+    if (pet.has && PET_SPECIES[pet.species]) {
+      const id = PET_SPECIES[pet.species];
+      recordPull(S.pulls, S.wallet, id, Date.now());
+      if (S.pulls[S.wallet]) S.pulls[S.wallet].partner = id;
+      S.partner = id;
+      S.opened = true;
+      if (!S.collection) S.collection = {};
+      S.collection[id] = true;
+      try {
+        const ids = decodeUintArray(await ethCall(PET_SEL.tokensOf + encAddress(S.wallet)));
+        for (const tid of ids.slice(0, 50)) {
+          const sp = Number(BigInt(await ethCall(PET_SEL.speciesOf + encUint(tid))));
+          if (PET_SPECIES[sp]) S.collection[PET_SPECIES[sp]] = true;
+        }
+      } catch (e) { /* collection sync is best effort */ }
+      save();
+    }
+  } catch (e) { /* chain sync is best effort; local state stands */ }
+  chainSyncing = false;
   renderAll();
 }
 async function connectWallet() {
@@ -589,7 +681,6 @@ try {
     });
   }
 } catch (e) { /* wallet events optional */ }
-let gachaOpening = false;
 function paintOpenedBox() {
   const grid = SPR.box, pal = SPR.boxPal, px = 7;
   const c = els.boxCanvas, ctx = c.getContext('2d');
@@ -618,57 +709,75 @@ function burstSparkles(n, big) {
     setTimeout(() => s.remove(), 900);
   }
 }
-function startOpening() {
+/* Opening the box IS the mint: the wallet confirmation pops first, the
+   contract rolls the species onchain, and the hamster that bursts out is
+   read back from the contract, so the reveal always matches the NFT. */
+async function startOpening() {
   if (gachaOpening || !S.wallet) return;
-  const existingPull = currentPull();
-  const pendingPaid = !!existingPull && (S.pendingPulls || 0) > 0;
-  if (existingPull && !pendingPaid) return;
+  if (currentPull()) return;
+  if (!petLive()) return;
   gachaOpening = true;
-  const id = gachaRoll();
-  const rare = HAMSTERS[id].rare;
-  els.prompt.hidden = true;
+  els.prompt.textContent = 'CONFIRM THE MINT IN YOUR WALLET...';
   els.boxCanvas.classList.add('gacha-wiggle-hard');
-  if (rare) els.dim.classList.add('on');
   const tickInt = setInterval(() => sfx('tick'), 110);
-  setTimeout(() => {
+  const stopWiggle = () => {
     clearInterval(tickInt);
     els.boxCanvas.classList.remove('gacha-wiggle-hard');
-    els.boxCanvas.classList.add('gacha-still');
-    sfx('pop');
-    els.flash.classList.remove('on');
-    void els.flash.offsetWidth;
-    els.flash.classList.add('on');
-    paintOpenedBox();
-    setTimeout(() => {
-      if (!existingPull) {
-        if (!recordPull(S.pulls, S.wallet, id, Date.now())) { gachaOpening = false; return; }
-      } else {
-        S.pulls[S.wallet].partner = id;
-      }
-      if (pendingPaid) S.pendingPulls = (S.pendingPulls || 1) - 1;
-      S.partner = id;
-      S.opened = true;
-      S.boxes = (S.boxes || 0) + 1;
-      if (!S.collection) S.collection = {};
-      S.collection[id] = true;
-      save();
-      els.boxCanvas.classList.remove('gacha-still');
-      els.dim.classList.remove('on');
-      renderAll();
-      burstSparkles(rare ? 18 : 10, rare);
-      sfx(rare ? 'fanfare' : 'jingle');
-      if (rare) {
-        els.partnerStats.textContent += ' · JACKPOT! No quizzes, biggest damage.';
-      }
-      gachaOpening = false;
-    }, rare ? 550 : 380);
-  }, rare ? 1800 : 700);
+  };
+  try {
+    if (!(await ensureSepolia())) throw new Error('wrong chain');
+    const usedFree = await chainFreeUsed(S.wallet);
+    let hash;
+    if (!usedFree) hash = await ethSend(PET_SEL.freeMint, '0x0');
+    else hash = await ethSend(PET_SEL.mintBatch + encUint(1), ethToWeiHex(mintTotalEth(1)));
+    els.prompt.textContent = 'MINTING ON SEPOLIA...';
+    if (!(await waitReceipt(hash))) throw new Error('mint failed');
+    const pet = await chainPetOf(S.wallet);
+    if (!pet.has || !PET_SPECIES[pet.species]) throw new Error('no pet after mint');
+    stopWiggle();
+    revealPet(PET_SPECIES[pet.species]);
+  } catch (e) {
+    stopWiggle();
+    els.prompt.textContent = 'MINT CANCELLED · CLICK BOX TO OPEN';
+    gachaOpening = false;
+  }
+}
+function revealPet(id) {
+  const rare = HAMSTERS[id].rare;
+  if (rare) els.dim.classList.add('on');
+  els.prompt.hidden = true;
+  els.boxCanvas.classList.add('gacha-still');
+  sfx('pop');
+  els.flash.classList.remove('on');
+  void els.flash.offsetWidth;
+  els.flash.classList.add('on');
+  paintOpenedBox();
+  setTimeout(() => {
+    recordPull(S.pulls, S.wallet, id, Date.now());
+    if (S.pulls[S.wallet]) S.pulls[S.wallet].partner = id;
+    S.partner = id;
+    S.opened = true;
+    S.boxes = (S.boxes || 0) + 1;
+    if (!S.collection) S.collection = {};
+    S.collection[id] = true;
+    save();
+    els.boxCanvas.classList.remove('gacha-still');
+    els.dim.classList.remove('on');
+    renderAll();
+    burstSparkles(rare ? 18 : 10, rare);
+    sfx(rare ? 'fanfare' : 'jingle');
+    if (rare) {
+      els.partnerStats.textContent += ' · JACKPOT! No quizzes, biggest damage.';
+    }
+    gachaOpening = false;
+  }, rare ? 550 : 380);
 }
 els.boxCanvas.addEventListener('click', startOpening);
 els.prompt.addEventListener('click', startOpening);
 
 /* ---------- mint panel: extra gacha pulls as Sepolia pet NFTs ---------- */
 let mintQty = 1;
+let minting = false;
 function renderMint() {
   if (!els.shopMsg) return;
   paint(els.shopBoxCanvas, SPR.box, SPR.boxPal, 4);
@@ -681,17 +790,39 @@ function renderMint() {
   els.shopConnect.hidden = !!S.wallet;
   const live = !!PET_CONTRACT.address;
   let msg = '', can = false;
-  if (!S.wallet) msg = els.walletMsg.textContent || '';
-  else if (!currentPull()) msg = 'This wallet still has its FREE pull. Use it on the gacha step first.';
-  else if ((S.pendingPulls || 0) > 0) msg = 'A pull is already waiting. Open it on the gacha step.';
+  if (!S.wallet) msg = 'Connect your wallet first.';
   else if (!live) msg = 'Pet contract is not live yet. Mint opens at launch.';
+  else if (!currentPull()) msg = 'This wallet still has its FREE pull. Use it on the gacha step first.';
+  else if (minting) msg = 'Minting on Sepolia...';
   else { msg = 'Ready for wallet ' + shortAddr(S.wallet) + '.'; can = true; }
   els.shopMsg.textContent = msg;
   els.shopBuy.disabled = !can;
 }
 els.shopBuy.addEventListener('click', async () => {
-  if (!S.wallet || !currentPull() || (S.pendingPulls || 0) > 0) return;
-  if (!PET_CONTRACT.address) return; // the batch paidMint call for mintQty lands here with the deployed address
+  if (!S.wallet || !currentPull() || !PET_CONTRACT.address || minting) return;
+  minting = true;
+  renderMint();
+  let resultMsg = 'Mint cancelled.';
+  try {
+    if (!(await ensureSepolia())) throw new Error('wrong chain');
+    const hash = await ethSend(PET_SEL.mintBatch + encUint(mintQty), ethToWeiHex(mintTotalEth(mintQty)));
+    if (!(await waitReceipt(hash))) throw new Error('mint failed');
+    const pet = await chainPetOf(S.wallet);
+    if (pet.has && PET_SPECIES[pet.species]) {
+      const id = PET_SPECIES[pet.species];
+      if (S.pulls[S.wallet]) S.pulls[S.wallet].partner = id;
+      S.partner = id;
+      S.opened = true;
+      if (!S.collection) S.collection = {};
+      S.collection[id] = true;
+      save();
+      await syncChainState();
+      resultMsg = 'Minted ' + mintQty + '! Newest partner: ' + HAMSTERS[id].name + '.';
+    }
+  } catch (e) { /* resultMsg already says cancelled */ }
+  minting = false;
+  renderAll();
+  els.shopMsg.textContent = resultMsg;
 });
 els.mintMinus.addEventListener('click', () => { mintQty = Math.max(1, mintQty - 1); renderMint(); });
 els.mintPlus.addEventListener('click', () => { mintQty = Math.min(MINT_MAX, mintQty + 1); renderMint(); });
