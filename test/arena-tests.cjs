@@ -78,6 +78,9 @@ ok(Logic.bossTokenReward === undefined && Logic.PULL_COST === undefined, 'the lo
 ok(Logic.mintTotalEth(1) === '0.002', 'one mint totals 0.002 ETH');
 ok(Logic.mintTotalEth(3) === '0.006', 'three mints total 0.006 ETH');
 ok(Logic.mintTotalEth(10) === '0.020', 'ten mints total 0.020 ETH');
+ok(Logic.mintChargeEth(1, true) === '0.000', 'first mint free: one mint charges nothing');
+ok(Logic.mintChargeEth(3, true) === '0.004', 'first mint free: three mints charge for two');
+ok(Logic.mintChargeEth(3, false) === '0.006', 'no free mint: three mints charge full price');
 ok(Logic.MINT_MAX === 10, 'the quantity picker caps at 10 per mint');
 ok(Logic.BOSSES.length === 5, 'the ladder has 5 bosses');
 ok(Logic.BOSSES.map(b => b.level).join(',') === '1,2,3,4,5', 'boss levels run 1 to 5');
