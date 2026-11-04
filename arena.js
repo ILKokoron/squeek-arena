@@ -219,7 +219,7 @@ const SPR = global.SQUEEK_SPRITES;
 if (!SPR) return;
 const $ = id => document.getElementById(id);
 const els = {
-  btnPlay: $('btnPlay'), btnHowto: $('btnHowto'), btnResetHome: $('btnResetHome'),
+  btnPlay: $('btnPlay'), btnHowto: $('btnHowto'),
   btnCollection: $('btnCollection'), btnSound: $('btnSound'), btnMint: $('btnMint'),
   mintBoxCanvas: $('mintBoxCanvas'), mintBuy: $('mintBuy'),
   mintMinus: $('mintMinus'), mintPlus: $('mintPlus'), mintQty: $('mintQty'), mintTotal: $('mintTotal'),
@@ -409,25 +409,6 @@ els.btnSound.addEventListener('click', () => {
   if (soundOn) sfx('jingle');
 });
 els.howtoBack.addEventListener('click', () => showScreen('screenHome'));
-function twoStep(btn, label, action) {
-  if (btn.dataset.armed === '1') {
-    btn.dataset.armed = '';
-    btn.textContent = label;
-    action();
-    return;
-  }
-  btn.dataset.armed = '1';
-  btn.textContent = 'Click again to confirm';
-  setTimeout(() => { btn.dataset.armed = ''; btn.textContent = label; }, 3000);
-}
-els.btnResetHome.addEventListener('click', () => {
-  twoStep(els.btnResetHome, 'Reset progress', () => {
-    const keepPulls = S.pulls || {};
-    S = defaultState();
-    S.pulls = keepPulls; // one pull per wallet survives a progress reset
-    save(); renderAll();
-  });
-});
 els.trainerMale.addEventListener('click', () => { S.trainer = 'male'; save(); renderAll(); });
 els.trainerFemale.addEventListener('click', () => { S.trainer = 'female'; save(); renderAll(); });
 els.trainerBack.addEventListener('click', () => showScreen('screenHome'));
@@ -1249,7 +1230,7 @@ const GREEN_PAL = { '#': '#111111' };
 paint(els.hillCanvas, HILL_GRID, GREEN_PAL, 6);
 paint(els.bushCanvas, BUSH_GRID, GREEN_PAL, 6);
 paint(els.menuCursor, SPR.hamsters.momo, SPR.hamsterPals.momo, 1);
-const menuItems = [els.btnPlay, els.btnHowto, els.btnCollection, els.btnMint, els.btnSound, els.btnResetHome];
+const menuItems = [els.btnPlay, els.btnHowto, els.btnCollection, els.btnMint, els.btnSound];
 let menuIdx = 0;
 function setCursor(i) {
   menuIdx = (i + menuItems.length) % menuItems.length;
