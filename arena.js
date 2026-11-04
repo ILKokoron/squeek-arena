@@ -285,6 +285,8 @@ function paint(canvas, grid, pal, px) {
 /* ---------- persistent state ---------- */
 const SAVE_KEY = 'squeekArenaV1';
 const REG_KEY = 'squeekArenaPullsV1';
+const SIGN_KEY = 'squeekArenaSignV1';
+const SIGN_TTL_MS = 7 * 24 * 3600 * 1000;
 function defaultState() {
   return { trainer: null, partner: null, opened: false, xp: 0, defeated: [], certified: false, collection: {}, boxes: 0, wallet: null, pulls: {}, activeTokenId: null };
 }
@@ -305,6 +307,22 @@ function loadSigned(key) {
 function loadRegistry() {
   const reg = loadSigned(REG_KEY);
   return reg && reg !== 'TAMPERED' && typeof reg === 'object' ? reg : null;
+}
+/* Signatures are remembered per wallet for a week of inactivity: connecting
+   inside that window skips the sign popup, and every successful connect
+   restarts the week. A full week away means signing again. */
+function loadSignMap() {
+  const d = loadSigned(SIGN_KEY);
+  return d && d !== 'TAMPERED' && typeof d === 'object' ? d : {};
+}
+function signStillValid(addr) {
+  const at = loadSignMap()[normalizeAddress(addr)];
+  return typeof at === 'number' && (Date.now() - at) < SIGN_TTL_MS;
+}
+function markSigned(addr) {
+  const m = loadSignMap();
+  m[normalizeAddress(addr)] = Date.now();
+  storeSigned(SIGN_KEY, m);
 }
 let S = defaultState();
 {
@@ -670,12 +688,15 @@ async function connectWallet() {
       els.walletMsg.textContent = 'Switch your wallet network to Sepolia to play.';
       return;
     }
-    try {
-      await eth.request({ method: 'personal_sign', params: ['Sign in to Squeek Arena. This proves the wallet is yours. No transaction, no cost.', accounts[0]] });
-    } catch (e) {
-      els.walletMsg.textContent = 'Signature rejected in the wallet.';
-      return;
+    if (!signStillValid(accounts[0])) {
+      try {
+        await eth.request({ method: 'personal_sign', params: ['Sign in to Squeek Arena. This proves the wallet is yours. No transaction, no cost.', accounts[0]] });
+      } catch (e) {
+        els.walletMsg.textContent = 'Signature rejected in the wallet.';
+        return;
+      }
     }
+    markSigned(accounts[0]);
     setWallet(accounts[0]);
     els.walletMsg.textContent = '';
   } catch (e) {
