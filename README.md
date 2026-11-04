@@ -25,4 +25,4 @@ Static site: plain HTML, CSS, and JavaScript, no build step and no backend. Batt
 
 Run the logic tests with: node test/arena-tests.cjs
 
-<!-- SQUEEKCHAIN REPOSITORY LINE: if Squeekchain issues a repository line for the direct verification path, paste it here. -->
+squeekchain-project: 6d63bf1a-0b45-4977-a4f7-4b868ca1de3b
