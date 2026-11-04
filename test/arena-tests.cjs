@@ -56,10 +56,11 @@ console.log('Damage');
   ok(dRare >= 30 && dRare <= 36, 'aurum direct damage is the highest base');
 }
 
-console.log('Token economy');
-ok(Logic.PULL_COST === 100, 'a gacha pull costs 100 tokens');
-ok(Logic.bossTokenReward(Logic.BOSSES[0]) === 100, 'a normal boss pays 100 tokens');
-ok(Logic.bossTokenReward(Logic.BOSSES[Logic.BOSSES.length - 1]) === 1000, 'the final boss pays 1000 tokens');
+console.log('Mint panel');
+ok(Logic.PET_CONTRACT && Logic.PET_CONTRACT.chainId === 11155111, 'the pet contract targets Sepolia');
+ok(Logic.PET_CONTRACT.priceEth === '0.002', 'an extra pull costs 0.002 ETH');
+ok(typeof Logic.PET_CONTRACT.address === 'string', 'the pet contract address slot exists (empty until deploy)');
+ok(Logic.bossTokenReward === undefined && Logic.PULL_COST === undefined, 'the local token economy is gone');
 ok(Logic.BOSSES.length === 5, 'the ladder has 5 bosses');
 ok(Logic.BOSSES.map(b => b.level).join(',') === '1,2,3,4,5', 'boss levels run 1 to 5');
 ok(Logic.BOSSES.map(b => b.name).join(',') === 'BRAGI,THOTH,SARASWATI,ATHENA,NOUS', 'bosses are knowledge gods, weakest to wisest');
