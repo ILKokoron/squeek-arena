@@ -29,7 +29,7 @@
           <button class="menu-item" id="btnPlay" type="button">PLAY</button>
           <button class="menu-item" id="btnHowto" type="button">HOW TO PLAY</button>
           <button class="menu-item" id="btnCollection" type="button">COLLECTION</button>
-          <button class="menu-item" id="btnShop" type="button">MINT</button>
+          <button class="menu-item" id="btnMint" type="button">MINT</button>
           <button class="menu-item" id="btnSound" type="button">SOUND ON</button>
           <button class="menu-item" id="btnResetHome" type="button">RESET PROGRESS</button>
         </div>
@@ -88,7 +88,7 @@
       <p class="hint gacha-used" id="gachaUsedNote" hidden></p>
       <div class="nav-row" id="gachaNav" hidden>
         <button class="btn btn-ghost" id="gachaBack" type="button">Back</button>
-        <button class="btn btn-ghost" id="gachaShop" type="button">Mint</button>
+        <button class="btn btn-ghost" id="gachaMint" type="button">Mint</button>
         <button class="btn" id="gachaNext" type="button">To the ladder</button>
       </div>
     </section>
@@ -173,23 +173,23 @@
     </section>
 
     <!-- ============ SCREEN: MINT ============ -->
-    <section class="card screen" id="screenShop" hidden>
+    <section class="card screen" id="screenMint" hidden>
       <h2>Mint</h2>
-      <div class="shop-card">
-        <canvas id="shopBoxCanvas" class="pixel-sprite" aria-hidden="true"></canvas>
-        <p class="shop-price">0.002 ETH / MINT</p>
+      <div class="mint-card">
+        <canvas id="mintBoxCanvas" class="pixel-sprite" aria-hidden="true"></canvas>
+        <p class="mint-price">0.002 ETH / MINT</p>
         <div class="mint-qty">
           <button class="btn mint-step" id="mintMinus" type="button" aria-label="Less">-</button>
           <span id="mintQty">1</span>
           <button class="btn mint-step" id="mintPlus" type="button" aria-label="More">+</button>
         </div>
-        <p class="shop-price" id="mintTotal">TOTAL 0.002 ETH</p>
-        <button class="btn" id="shopConnect" type="button" hidden>Connect wallet</button>
-        <button class="btn btn-primary" id="shopBuy" type="button">Mint a pull</button>
-        <p class="hint" id="shopMsg"></p>
+        <p class="mint-price" id="mintTotal">TOTAL 0.002 ETH</p>
+        <button class="btn" id="mintConnect" type="button" hidden>Connect wallet</button>
+        <button class="btn btn-primary" id="mintBuy" type="button">Mint a pull</button>
+        <p class="hint" id="mintMsg"></p>
       </div>
       <div class="nav-row">
-        <button class="btn" id="shopBack" type="button">Back</button>
+        <button class="btn" id="mintBack" type="button">Back</button>
       </div>
     </section>
 
@@ -214,7 +214,7 @@
     <canvas id="bushCanvas" class="pixel-sprite bush" width="84" height="36"></canvas>
   </div>
 </div>
-<script src="sprites.js?v=20261104ac"></script>
-<script src="arena.js?v=20261104ac"></script>
+<script src="sprites.js?v=20261104ad"></script>
+<script src="arena.js?v=20261104ad"></script>
 </body>
 </html>
