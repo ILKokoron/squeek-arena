@@ -180,6 +180,9 @@ function correctTextOf(question) { for (const o of question.o) { const t = decOp
 function makeOptions(question, rng) {
   return shuffle(question.o.map(decOpt), rng);
 }
+function fmtInt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+/* Live questions are generated from the chain snapshot taken at battle start,
+   so their answers are whatever Squeekchain is doing at that moment. */
 function buildLiveQuestions(st) {
   if (!st) return [];
   const out = [];
@@ -197,6 +200,28 @@ function buildLiveQuestions(st) {
     const p = Math.round(st.blockProgressPct);
     out.push(encodeQuestion('LIVE: how far is the current block toward completion?', p + '%',
       [Math.min(99, p + 15) + '%', Math.max(0, p - 12) + '%', Math.min(99, p + 40) + '%']));
+  }
+  if (st.distanceMm != null && isFinite(Number(st.distanceMm)) && Number(st.distanceMm) > 0) {
+    const c = Math.round(Number(st.distanceMm) / 1e5) / 10; // mm to km, 1 decimal
+    const wrong = [...new Set([c * 0.7, c * 1.3, c * 1.8, c * 2.2].map(v => (Math.round(v * 2) / 2).toFixed(1)))].filter(v => v !== c.toFixed(1)).slice(0, 3);
+    out.push(encodeQuestion('LIVE: how far has Squeektoshi rolled in total since the stream began?', 'About ' + c.toFixed(1) + ' km',
+      wrong.map(v => 'About ' + v + ' km')));
+  }
+  if (st.workUnits != null && isFinite(Number(st.workUnits)) && Number(st.workUnits) > 0) {
+    const w = Number(st.workUnits);
+    out.push(encodeQuestion('LIVE: how much proven wheel work has Squeektoshi racked up?', fmtInt(w) + ' units',
+      [fmtInt(w * 0.85) + ' units', fmtInt(w * 1.2) + ' units', fmtInt(w * 0.6) + ' units']));
+  }
+  if (st.settledRounds != null && isFinite(Number(st.settledRounds)) && Number(st.settledRounds) > 0) {
+    const r = Number(st.settledRounds);
+    out.push(encodeQuestion('LIVE: how many rounds have settled on chain so far?', fmtInt(r),
+      [fmtInt(r + 2), fmtInt(Math.max(0, r - 3)), fmtInt(r + 25)]));
+  }
+  if (st.state === 'running' && st.speedMmS != null && isFinite(Number(st.speedMmS)) && Number(st.speedMmS) >= 30) {
+    const c = Math.round(Number(st.speedMmS) * 0.036) / 10; // mm/s to km/h, 1 decimal
+    const wrong = [c + 0.8, Math.max(0.1, c - 0.6), c + 1.7].map(v => (Math.round(v * 10) / 10).toFixed(1));
+    out.push(encodeQuestion('LIVE: how fast is the wheel spinning right now?', 'About ' + c.toFixed(1) + ' km/h',
+      wrong.map(v => 'About ' + v + ' km/h')));
   }
   return out;
 }
@@ -1016,7 +1041,7 @@ function startBattle(boss) {
 function beginBattle(boss) {
   const st = playerStats();
   battle = { boss, bossHp: boss.hp, playerHp: st.maxHp, streak: 0, snacks: 3, buff: liveBuff, lastQ: null, correctText: '',
-             pool: shuffle(QUESTIONS[boss.tier].concat(shuffle(liveQuestions).slice(0, 2))), qi: 0, phase: 'intro', q: null };
+             pool: shuffle(QUESTIONS[boss.tier].concat(shuffle(liveQuestions).slice(0, 3))), qi: 0, phase: 'intro', q: null };
   showScreen('screenBattle');
   paint(els.bossCanvas, SPR.bossForms[boss.form], SPR.bossPals[boss.form], 6);
   paint(els.playerCanvas, SPR.hamsterBacks[S.partner], SPR.hamsterPals[S.partner], 6);
@@ -1369,6 +1394,10 @@ function refreshLive() {
       state: (m.freshness === 'online' && m.coreStatus === 'ACTIVE') ? 'running' : 'idle',
       blockHeight: anchor && anchor.blockHeight != null ? String(anchor.blockHeight) : null,
       blockProgressPct: null,
+      distanceMm: m.distanceMm != null ? Number(m.distanceMm) : null,
+      speedMmS: m.speedMmPerSecond != null ? Number(m.speedMmPerSecond) : null,
+      workUnits: m.cumulativeWorkUnits != null ? m.cumulativeWorkUnits : null,
+      settledRounds: anchor && anchor.settledThroughRound != null ? anchor.settledThroughRound : null,
     };
     if (anchor && anchor.blockProgress != null) {
       const p = Number(anchor.blockProgress) / 1e7; // block units (1e9 per block) to percent
