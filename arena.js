@@ -1,6 +1,4 @@
-/* Squeek Arena: a Pokemon-style quiz battle ladder against Squeektoshi.
-   Pick a trainer, mint your gacha hamster (an NFT on Sepolia), climb the
-   5-boss ladder. Battle progress is local; pet ownership is onchain. */
+/* Squeek Arena: quiz battle ladder. Progress local, pet ownership onchain. */
 (function (global) {
 'use strict';
 
@@ -171,7 +169,8 @@ function correctTextOf(question) { for (const o of question.o) { const t = decOp
 function makeOptions(question, rng) {
   return shuffle(question.o.map(decOpt), rng);
 }
-/* Live questions ask about the chain's state now, never exact numbers. */
+/* Live questions come from the chain snapshot at battle start: state
+   buckets plus exact figures read straight off the live status. */
 function buildLiveQuestions(st) {
   if (!st) return [];
   const out = [];
@@ -197,24 +196,18 @@ function buildLiveQuestions(st) {
     const km = Number(st.distanceMm) / 1e6;
     const mark = Math.round(km * 2) / 2;
     const markTxt = (mark % 1 === 0 ? mark.toFixed(0) : mark.toFixed(1)) + ' km';
-    if (km >= mark) {
-      out.push(encodeQuestion('LIVE: has Squeektoshi rolled past ' + markTxt + ' in total yet?', 'Yes, he is at about ' + km.toFixed(1) + ' km',
-        ['Not yet, he is still under it', 'He has not started rolling', 'Distance does not count on Squeekchain']));
-    } else {
-      out.push(encodeQuestion('LIVE: has Squeektoshi rolled past ' + markTxt + ' in total yet?', 'Not yet, he is at about ' + km.toFixed(1) + ' km',
-        ['Yes, he passed it a while ago', 'He has not started rolling', 'Distance does not count on Squeekchain']));
-    }
+    const passed = km >= mark;
+    out.push(encodeQuestion('LIVE: has Squeektoshi rolled past ' + markTxt + ' in total yet?',
+      (passed ? 'Yes' : 'Not yet') + ', he is at about ' + km.toFixed(1) + ' km',
+      [passed ? 'Not yet, he is still under it' : 'Yes, he passed it a while ago', 'He has not started rolling', 'Distance does not count on Squeekchain']));
   }
   if (st.firstHeight != null && st.blockHeight != null && st.blockHeight !== '') {
     const h = Number(st.blockHeight), f = Number(st.firstHeight);
     if (isFinite(h) && isFinite(f)) {
-      if (h > f) {
-        out.push(encodeQuestion('LIVE: since you opened Squeek Arena, has the chain finished a new block?', 'Yes, at least one new block',
-          ['Not yet, still on the same block', 'Blocks only finish on Sundays', 'The chain makes one block per day']));
-      } else {
-        out.push(encodeQuestion('LIVE: since you opened Squeek Arena, has the chain finished a new block?', 'Not yet, still on the same block',
-          ['Yes, at least one new block', 'Blocks only finish on Sundays', 'The chain makes one block per day']));
-      }
+      const newBlock = h > f;
+      out.push(encodeQuestion('LIVE: since you opened Squeek Arena, has the chain finished a new block?',
+        newBlock ? 'Yes, at least one new block' : 'Not yet, still on the same block',
+        [newBlock ? 'Not yet, still on the same block' : 'Yes, at least one new block', 'Blocks only finish on Sundays', 'The chain makes one block per day']));
     }
   }
   if (st.closedRounds != null && isFinite(Number(st.closedRounds))) {
@@ -222,6 +215,34 @@ function buildLiveQuestions(st) {
     out.push(encodeQuestion('LIVE: is a finished round waiting to settle on chain right now?',
       waiting ? 'Yes, one is waiting' : 'No, the queue is clear',
       [waiting ? 'No, the queue is clear' : 'Yes, one is waiting', 'Rounds settle instantly, always', 'Settlement is turned off']));
+  }
+  const fmt = n => Math.round(n).toLocaleString('en-US');
+  if (st.blockHeight != null && isFinite(Number(st.blockHeight))) {
+    const hgt = Number(st.blockHeight);
+    out.push(encodeQuestion('LIVE: what block is Squeekchain on right now?', 'Block ' + fmt(hgt),
+      ['Block ' + fmt(hgt - 1), 'Block ' + fmt(hgt + 1), 'Block ' + fmt(hgt + 10)]));
+  }
+  if (st.blockProgressPct != null && isFinite(st.blockProgressPct)) {
+    const p = Math.round(st.blockProgressPct);
+    const wrongs = [];
+    for (const w of [p - 15, p + 12, p - 25, p + 30, p + 5]) {
+      if (w >= 0 && w <= 99 && w !== p && !wrongs.includes(w)) wrongs.push(w);
+      if (wrongs.length === 3) break;
+    }
+    if (wrongs.length === 3) {
+      out.push(encodeQuestion('LIVE: exactly how full is the current block?', p + '% full',
+        wrongs.map(w => w + '% full')));
+    }
+  }
+  if (st.distanceMm != null && isFinite(Number(st.distanceMm)) && Number(st.distanceMm) / 1e6 >= 1) {
+    const km = Number(st.distanceMm) / 1e6;
+    out.push(encodeQuestion('LIVE: how far has Squeektoshi rolled in total?', km.toFixed(2) + ' km',
+      [(km - 0.5).toFixed(2) + ' km', (km + 0.5).toFixed(2) + ' km', (km + 1.2).toFixed(2) + ' km']));
+  }
+  if (st.settledRounds != null && isFinite(Number(st.settledRounds))) {
+    const sr = Number(st.settledRounds);
+    out.push(encodeQuestion('LIVE: how many rounds have settled on chain so far?', fmt(sr) + ' rounds',
+      [fmt(sr - 1) + ' rounds', fmt(sr + 1) + ' rounds', fmt(sr + 5) + ' rounds']));
   }
   return out;
 }
@@ -331,7 +352,7 @@ function paint(canvas, grid, pal, px) {
   ctx.drawImage(src, 0, 0);
 }
 
-/* ---------- persistent state ---------- */
+/* persistent state */
 const SAVE_KEY = 'squeekArenaV1';
 const REG_KEY = 'squeekArenaPullsV1';
 const SIGN_KEY = 'squeekArenaSignV1';
@@ -455,7 +476,7 @@ function renderLadder() {
   els.gotoCertified.hidden = !S.certified;
 }
 
-/* ---------- navigation ---------- */
+/* navigation */
 els.btnPlay.addEventListener('click', async () => {
   if (!S.wallet) {
     await connectWallet();
@@ -493,7 +514,7 @@ els.gotoCertified.addEventListener('click', () => showCertified());
 els.certHome.addEventListener('click', () => showScreen('screenHome'));
 els.certLadder.addEventListener('click', () => showScreen('screenLadder'));
 
-/* ---------- retro sound engine (WebAudio, no files) ---------- */
+/* retro sound engine (WebAudio, no files) */
 const WIN = typeof window !== 'undefined' ? window : globalThis;
 let actx = null;
 let soundOn = true;
@@ -539,7 +560,7 @@ document.addEventListener('click', (e) => {
 });
 function syncSoundLabel() { els.btnSound.textContent = soundOn ? 'SOUND ON' : 'SOUND OFF'; }
 
-/* ---------- battle juice: floating damage numbers ---------- */
+/* battle juice: floating damage numbers */
 function floatDmg(text, cls, targetCanvas) {
   const host = $('screenBattle');
   if (!host) return;
@@ -562,7 +583,7 @@ function shakeBattle() {
   setTimeout(() => host.classList.remove('shake-it'), 320);
 }
 
-/* ---------- collection ---------- */
+/* collection */
 function silhouettePal(grid) {
   const pal = {};
   for (const row of grid) for (const ch of row) if (ch !== '.') pal[ch] = '#3d3d3d';
@@ -589,7 +610,7 @@ function renderCollection() {
   els.collectionNote.textContent = 'Collected ' + got + ' of 4 · Boxes opened: ' + (S.boxes || 0);
 }
 
-/* ---------- gacha ---------- */
+/* gacha */
 let gachaOpening = false;
 let ceremonySpecies = null;
 function shortAddr(a) { return a ? a.slice(0, 6) + '..' + a.slice(-4) : ''; }
@@ -636,7 +657,7 @@ function setWallet(addr) {
   syncChainState();
 }
 
-/* ---------- onchain pets: raw JSON-RPC through the connected wallet ---------- */
+/* onchain pets: raw JSON-RPC through the connected wallet */
 function petLive() { return !!(PET_CONTRACT.address && WIN.ethereum && typeof WIN.ethereum.request === 'function'); }
 async function ethCall(data) {
   return WIN.ethereum.request({ method: 'eth_call', params: [{ to: PET_CONTRACT.address, data }, 'latest'] });
@@ -869,7 +890,7 @@ function celebrateMint(id, consumedFree) {
   }, 750);
 }
 
-/* ---------- mint panel: extra gacha pulls as Sepolia pet NFTs ---------- */
+/* mint panel: extra gacha pulls as Sepolia pet NFTs */
 let mintQty = 1;
 let minting = false;
 function renderMint() {
@@ -941,7 +962,7 @@ els.mintBack.addEventListener('click', () => showScreen('screenHome'));
 els.mintConnect.addEventListener('click', async () => { await connectWallet(); renderAll(); });
 
 
-/* ---------- pre-battle hamster picker ---------- */
+/* pre-battle hamster picker */
 let pendingBoss = null;
 function localOwnedPets() {
   if (!S.partner) return [];
@@ -1007,7 +1028,7 @@ function renderChoose(list) {
 }
 els.chooseBack.addEventListener('click', () => { pendingBoss = null; showScreen('screenLadder'); });
 
-/* ---------- battle ---------- */
+/* battle */
 function hpColor(pct) { return pct > 50 ? '#111111' : pct > 25 ? '#5a5a5a' : '#a8a8a8'; }
 function renderBattleHp() {
   if (!battle) return;
@@ -1228,7 +1249,7 @@ function loseBattle() {
   els.summary.textContent = HAMSTERS[S.partner].name + ' fainted against ' + name + '. HP is restored, try again.';
 }
 
-/* ---------- certified ---------- */
+/* certified */
 function showCertified() {
   paint($('arenaCertPartner'), SPR.hamsters[S.partner], SPR.hamsterPals[S.partner], 5);
   paint($('arenaCertTrainer'), SPR.trainers[S.trainer], SPR.trainerPal, 4);
@@ -1274,7 +1295,7 @@ els.shareBtn.addEventListener('click', () => {
 });
 
 
-/* ---------- retro decor: hill, bush, menu cursor ---------- */
+/* retro decor: hill, bush, menu cursor */
 /* Landscape: every screen gets its own hills. */
 const LAND_SHAPES = {
   peak: [
@@ -1381,7 +1402,7 @@ document.addEventListener('keydown', e => {
 });
 setCursor(0);
 
-/* ---------- live data: boss buff + live questions ---------- */
+/* live data: boss buff + live questions */
 let liveRefreshP = null;
 let firstBlockHeight = null;
 const PACE_KEY = 'squeekArenaPaceV1';
