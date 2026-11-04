@@ -61,6 +61,10 @@ ok(Logic.PET_CONTRACT && Logic.PET_CONTRACT.chainId === 11155111, 'the pet contr
 ok(Logic.PET_CONTRACT.priceEth === '0.002', 'an extra pull costs 0.002 ETH');
 ok(typeof Logic.PET_CONTRACT.address === 'string', 'the pet contract address slot exists (empty until deploy)');
 ok(Logic.bossTokenReward === undefined && Logic.PULL_COST === undefined, 'the local token economy is gone');
+ok(Logic.mintTotalEth(1) === '0.002', 'one mint totals 0.002 ETH');
+ok(Logic.mintTotalEth(3) === '0.006', 'three mints total 0.006 ETH');
+ok(Logic.mintTotalEth(10) === '0.020', 'ten mints total 0.020 ETH');
+ok(Logic.MINT_MAX === 10, 'the quantity picker caps at 10 per mint');
 ok(Logic.BOSSES.length === 5, 'the ladder has 5 bosses');
 ok(Logic.BOSSES.map(b => b.level).join(',') === '1,2,3,4,5', 'boss levels run 1 to 5');
 ok(Logic.BOSSES.map(b => b.name).join(',') === 'BRAGI,THOTH,SARASWATI,ATHENA,NOUS', 'bosses are knowledge gods, weakest to wisest');
