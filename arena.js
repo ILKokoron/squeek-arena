@@ -923,7 +923,12 @@ async function challengeBoss(boss) {
 function renderChoose(list) {
   els.chooseBoss.textContent = 'VS ' + pendingBoss.name + ' · Lv ' + pendingBoss.level + ' · pick who fights';
   els.chooseList.innerHTML = '';
-  for (const p of list) {
+  // Strongest first: ATK decides fights, HP breaks ties, token id settles the rest.
+  const sorted = list.slice().sort((a, b) => {
+    const sa = statsFor(a.species, S.xp), sb = statsFor(b.species, S.xp);
+    return (sb.atk - sa.atk) || (sb.maxHp - sa.maxHp) || ((a.tokenId || 0) - (b.tokenId || 0));
+  });
+  for (const p of sorted) {
     const card = document.createElement('div');
     card.className = 'arena-boss-card';
     const cv = document.createElement('canvas');
