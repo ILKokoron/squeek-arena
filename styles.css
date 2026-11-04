@@ -353,3 +353,10 @@ body{background:#f4f4f4}
 .mint-qty{display:flex;align-items:center;gap:16px}
 .mint-step{width:46px;height:46px;font-size:20px;padding:0;line-height:1}
 #mintQty{font-family:'Press Start 2P',monospace;font-size:17px;min-width:34px}
+
+/* ================= Choose hamster: fixed-height scrolling inventory ================= */
+#chooseList{max-height:54vh;overflow-y:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#111 #e8e8e8}
+#chooseList::-webkit-scrollbar{width:10px}
+#chooseList::-webkit-scrollbar-track{background:#e8e8e8;border:2px solid #111}
+#chooseList::-webkit-scrollbar-thumb{background:#111}
+#chooseList .arena-boss-card:first-child{margin-top:0}
