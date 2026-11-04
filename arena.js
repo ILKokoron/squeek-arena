@@ -127,6 +127,7 @@ function recordPull(pulls, addr, hamsterId, at) {
 const PET_CONTRACT = { address: '0x3ac243475b0D782a05B40Eb9546E25bb986BB6DD', chainId: 11155111, priceEth: '0.002' };
 const MINT_MAX = 10;
 function mintTotalEth(qty) { return (qty * Number(PET_CONTRACT.priceEth)).toFixed(3); }
+function mintChargeEth(qty, firstFree) { return mintTotalEth(Math.max(0, qty - (firstFree ? 1 : 0))); }
 const PET_SPECIES = ['momo', 'shiro', 'goma', 'aurum'];
 const PET_SEL = { freeMint: '0x5b70ea9f', mintBatch: '0x20e409b4', petOf: '0xa8379ea2',
                   freeMintUsed: '0x456cc814', tokensOf: '0x5a3f2672', speciesOf: '0xd27b3930' };
@@ -211,7 +212,7 @@ function buildLiveQuestions(st) {
 const Logic = { BOSSES, HAMSTERS, QUESTIONS, RARE_CHANCE,
                 levelFromXp, statsFor, playerDamage, bossDamage, gachaRoll,
                 shuffle, makeOptions, buildLiveQuestions,
-                normalizeAddress, pullFor, recordPull, PET_CONTRACT, mintTotalEth, MINT_MAX,
+                normalizeAddress, pullFor, recordPull, PET_CONTRACT, mintTotalEth, mintChargeEth, MINT_MAX,
                 PET_SPECIES, PET_SEL, encAddress, encUint, decodePetOf, decodeBool,
                 decodeUintArray, ethToWei, ethToWeiHex,
                 fnv, hashAnswer, encOpt, decOpt, encodeQuestion, correctTextOf };
@@ -586,6 +587,7 @@ function syncGacha() {
 }
 function setWallet(addr) {
   S.wallet = addr ? normalizeAddress(addr) : null;
+  freeMintUsedKnown = null;
   const pull = currentPull();
   if (pull) { S.partner = pull.partner; S.opened = true; }
   save();
@@ -629,12 +631,14 @@ async function chainPetOf(addr) { return decodePetOf(await ethCall(PET_SEL.petOf
 async function chainFreeUsed(addr) { return decodeBool(await ethCall(PET_SEL.freeMintUsed + encAddress(addr))); }
 let chainSyncing = false;
 let ownedPets = [];
+let freeMintUsedKnown = null;
 async function syncChainState() {
   if (!petLive() || !S.wallet || chainSyncing) return;
   chainSyncing = true;
   try {
     if (!(await ensureSepolia())) return;
     const pet = await chainPetOf(S.wallet);
+    try { freeMintUsedKnown = await chainFreeUsed(S.wallet); } catch (e) { /* keep last known */ }
     if (pet.has && PET_SPECIES[pet.species]) {
       const id = PET_SPECIES[pet.species];
       recordPull(S.pulls, S.wallet, id, Date.now());
@@ -812,9 +816,11 @@ let minting = false;
 function renderMint() {
   if (!els.shopMsg) return;
   paint(els.shopBoxCanvas, SPR.box, SPR.boxPal, 4);
+  const freeAvail = freeMintUsedKnown === false;
   if (els.mintQty) {
     els.mintQty.textContent = String(mintQty);
-    els.mintTotal.textContent = 'TOTAL ' + mintTotalEth(mintQty) + ' ETH';
+    const charged = mintChargeEth(mintQty, freeAvail);
+    els.mintTotal.textContent = charged === '0.000' ? 'TOTAL FREE' : 'TOTAL ' + charged + ' ETH';
     els.mintMinus.disabled = mintQty <= 1;
     els.mintPlus.disabled = mintQty >= MINT_MAX;
   }
@@ -823,21 +829,32 @@ function renderMint() {
   let msg = '', can = false;
   if (!S.wallet) msg = 'Connect your wallet first.';
   else if (!live) msg = 'Pet contract is not live yet. Mint opens at launch.';
-  else if (!currentPull()) msg = 'This wallet still has its FREE pull. Use it on the gacha step first.';
   else if (minting) msg = 'Minting on Sepolia...';
+  else if (freeAvail) { msg = 'Your first mint is FREE · Sepolia testnet.'; can = true; }
   else { msg = 'Ready for wallet ' + shortAddr(S.wallet) + '.'; can = true; }
   els.shopMsg.textContent = msg;
   els.shopBuy.disabled = !can;
 }
 els.shopBuy.addEventListener('click', async () => {
-  if (!S.wallet || !currentPull() || !PET_CONTRACT.address || minting) return;
+  if (!S.wallet || !PET_CONTRACT.address || minting) return;
   minting = true;
   renderMint();
   let resultMsg = 'Mint cancelled.';
   try {
     if (!(await ensureSepolia())) throw new Error('wrong chain');
-    const hash = await ethSend(PET_SEL.mintBatch + encUint(mintQty), ethToWeiHex(mintTotalEth(mintQty)));
-    if (!(await waitReceipt(hash))) throw new Error('mint failed');
+    let remaining = mintQty;
+    if (freeMintUsedKnown === false) {
+      els.shopMsg.textContent = 'Confirm the FREE mint in your wallet...';
+      const fh = await ethSend(PET_SEL.freeMint, '0x0');
+      if (!(await waitReceipt(fh))) throw new Error('mint failed');
+      freeMintUsedKnown = true;
+      remaining = mintQty - 1;
+      if (remaining > 0) els.shopMsg.textContent = 'Free pet minted. Confirm ' + remaining + ' more in your wallet...';
+    }
+    if (remaining > 0) {
+      const hash = await ethSend(PET_SEL.mintBatch + encUint(remaining), ethToWeiHex(mintTotalEth(remaining)));
+      if (!(await waitReceipt(hash))) throw new Error('mint failed');
+    }
     const pet = await chainPetOf(S.wallet);
     if (pet.has && PET_SPECIES[pet.species]) {
       const id = PET_SPECIES[pet.species];
