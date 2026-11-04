@@ -180,48 +180,59 @@ function correctTextOf(question) { for (const o of question.o) { const t = decOp
 function makeOptions(question, rng) {
   return shuffle(question.o.map(decOpt), rng);
 }
-function fmtInt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
-/* Live questions are generated from the chain snapshot taken at battle start,
-   so their answers are whatever Squeekchain is doing at that moment. */
+/* Live questions ask about the chain's state at this moment, never about
+   exact numbers: wheel state, block fullness, pace, milestones, and what
+   changed since the player arrived. Generated fresh at every battle start. */
 function buildLiveQuestions(st) {
   if (!st) return [];
   const out = [];
-  if (st.blockHeight != null && st.blockHeight !== '') {
-    const h = Number(st.blockHeight);
-    if (isFinite(h)) {
-      out.push(encodeQuestion('LIVE: what is the Squeekchain block height right now?', String(h),
-        [String(h + 3), String(Math.max(0, h - 2)), String(h + 10)]));
-    }
-  }
   out.push(encodeQuestion('LIVE: is Squeektoshi running on the wheel right now?',
     st.state === 'running' ? 'Yes, he is running' : 'No, he is resting',
     [st.state === 'running' ? 'No, he is resting' : 'Yes, he is running', 'He is sleeping all day', 'He only runs on Sundays']));
-  if (st.blockProgressPct != null) {
-    const p = Math.round(st.blockProgressPct);
-    out.push(encodeQuestion('LIVE: how far is the current block toward completion?', p + '%',
-      [Math.min(99, p + 15) + '%', Math.max(0, p - 12) + '%', Math.min(99, p + 40) + '%']));
+  if (st.blockProgressPct != null && isFinite(st.blockProgressPct)) {
+    const p = st.blockProgressPct;
+    const bucket = p < 25 ? 'Barely started, under 25% full'
+      : p < 50 ? 'Partway there, 25 to 50% full'
+      : p < 75 ? 'More than half full, 50 to 75%'
+      : 'Almost done, over 75% full';
+    const all = ['Barely started, under 25% full', 'Partway there, 25 to 50% full', 'More than half full, 50 to 75%', 'Almost done, over 75% full'];
+    out.push(encodeQuestion('LIVE: the block being built right now is...', bucket, all.filter(b => b !== bucket)));
+  }
+  if (st.state === 'running' && st.speedMmS != null && isFinite(Number(st.speedMmS)) && Number(st.speedMmS) > 0) {
+    const kmh = Number(st.speedMmS) * 0.0036;
+    const pace = kmh < 1 ? 'Barely moving' : kmh < 2.5 ? 'At a steady pace' : kmh < 4 ? 'Fast' : 'Flat out';
+    const all = ['Barely moving', 'At a steady pace', 'Fast', 'Flat out'];
+    out.push(encodeQuestion('LIVE: how hard is Squeektoshi running right now?', pace, all.filter(b => b !== pace)));
   }
   if (st.distanceMm != null && isFinite(Number(st.distanceMm)) && Number(st.distanceMm) > 0) {
-    const c = Math.round(Number(st.distanceMm) / 1e5) / 10; // mm to km, 1 decimal
-    const wrong = [...new Set([c * 0.7, c * 1.3, c * 1.8, c * 2.2].map(v => (Math.round(v * 2) / 2).toFixed(1)))].filter(v => v !== c.toFixed(1)).slice(0, 3);
-    out.push(encodeQuestion('LIVE: how far has Squeektoshi rolled in total since the stream began?', 'About ' + c.toFixed(1) + ' km',
-      wrong.map(v => 'About ' + v + ' km')));
+    const km = Number(st.distanceMm) / 1e6;
+    const mark = Math.round(km * 2) / 2;
+    const markTxt = (mark % 1 === 0 ? mark.toFixed(0) : mark.toFixed(1)) + ' km';
+    if (km >= mark) {
+      out.push(encodeQuestion('LIVE: has Squeektoshi rolled past ' + markTxt + ' in total yet?', 'Yes, he is at about ' + km.toFixed(1) + ' km',
+        ['Not yet, he is still under it', 'He has not started rolling', 'Distance does not count on Squeekchain']));
+    } else {
+      out.push(encodeQuestion('LIVE: has Squeektoshi rolled past ' + markTxt + ' in total yet?', 'Not yet, he is at about ' + km.toFixed(1) + ' km',
+        ['Yes, he passed it a while ago', 'He has not started rolling', 'Distance does not count on Squeekchain']));
+    }
   }
-  if (st.workUnits != null && isFinite(Number(st.workUnits)) && Number(st.workUnits) > 0) {
-    const w = Number(st.workUnits);
-    out.push(encodeQuestion('LIVE: how much proven wheel work has Squeektoshi racked up?', fmtInt(w) + ' units',
-      [fmtInt(w * 0.85) + ' units', fmtInt(w * 1.2) + ' units', fmtInt(w * 0.6) + ' units']));
+  if (st.firstHeight != null && st.blockHeight != null && st.blockHeight !== '') {
+    const h = Number(st.blockHeight), f = Number(st.firstHeight);
+    if (isFinite(h) && isFinite(f)) {
+      if (h > f) {
+        out.push(encodeQuestion('LIVE: since you opened Squeek Arena, has the chain finished a new block?', 'Yes, at least one new block',
+          ['Not yet, still on the same block', 'Blocks only finish on Sundays', 'The chain makes one block per day']));
+      } else {
+        out.push(encodeQuestion('LIVE: since you opened Squeek Arena, has the chain finished a new block?', 'Not yet, still on the same block',
+          ['Yes, at least one new block', 'Blocks only finish on Sundays', 'The chain makes one block per day']));
+      }
+    }
   }
-  if (st.settledRounds != null && isFinite(Number(st.settledRounds)) && Number(st.settledRounds) > 0) {
-    const r = Number(st.settledRounds);
-    out.push(encodeQuestion('LIVE: how many rounds have settled on chain so far?', fmtInt(r),
-      [fmtInt(r + 2), fmtInt(Math.max(0, r - 3)), fmtInt(r + 25)]));
-  }
-  if (st.state === 'running' && st.speedMmS != null && isFinite(Number(st.speedMmS)) && Number(st.speedMmS) >= 30) {
-    const c = Math.round(Number(st.speedMmS) * 0.036) / 10; // mm/s to km/h, 1 decimal
-    const wrong = [c + 0.8, Math.max(0.1, c - 0.6), c + 1.7].map(v => (Math.round(v * 10) / 10).toFixed(1));
-    out.push(encodeQuestion('LIVE: how fast is the wheel spinning right now?', 'About ' + c.toFixed(1) + ' km/h',
-      wrong.map(v => 'About ' + v + ' km/h')));
+  if (st.closedRounds != null && isFinite(Number(st.closedRounds))) {
+    const waiting = Number(st.closedRounds) > 0;
+    out.push(encodeQuestion('LIVE: is a finished round waiting to settle on chain right now?',
+      waiting ? 'Yes, one is waiting' : 'No, the queue is clear',
+      [waiting ? 'No, the queue is clear' : 'Yes, one is waiting', 'Rounds settle instantly, always', 'Settlement is turned off']));
   }
   return out;
 }
@@ -1384,20 +1395,23 @@ setCursor(0);
 
 /* ---------- live data: boss buff + live questions ---------- */
 let liveRefreshP = null;
+let firstBlockHeight = null;
 function refreshLive() {
   if (liveRefreshP) return liveRefreshP;
   const done = () => { liveRefreshP = null; };
   liveRefreshP = fetch('https://api.squeekchain.com/v1/status').then(r => r.json()).then(json => {
     const m = (json && json.measurement) || {};
     const anchor = (json && json.builder && json.builder.anchor) || null;
+    const queued = (json && json.builder && json.builder.queued) || null;
+    if (firstBlockHeight == null && anchor && anchor.blockHeight != null) firstBlockHeight = String(anchor.blockHeight);
     const st = {
       state: (m.freshness === 'online' && m.coreStatus === 'ACTIVE') ? 'running' : 'idle',
       blockHeight: anchor && anchor.blockHeight != null ? String(anchor.blockHeight) : null,
       blockProgressPct: null,
       distanceMm: m.distanceMm != null ? Number(m.distanceMm) : null,
       speedMmS: m.speedMmPerSecond != null ? Number(m.speedMmPerSecond) : null,
-      workUnits: m.cumulativeWorkUnits != null ? m.cumulativeWorkUnits : null,
-      settledRounds: anchor && anchor.settledThroughRound != null ? anchor.settledThroughRound : null,
+      firstHeight: firstBlockHeight,
+      closedRounds: queued && queued.closedRoundCount != null ? queued.closedRoundCount : null,
     };
     if (anchor && anchor.blockProgress != null) {
       const p = Number(anchor.blockProgress) / 1e7; // block units (1e9 per block) to percent
