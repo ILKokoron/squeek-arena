@@ -239,7 +239,7 @@ const els = {
   stage: $('gachaStage'), prompt: $('gachaPrompt'), rays: $('gachaRays'), flash: $('gachaFlash'), dim: $('gachaDim'),
   nav: $('gachaNav'),
   partnerBox: $('arenaPartner'), partnerCanvas: $('arenaPartnerCanvas'),
-  partnerName: $('arenaPartnerName'), partnerStats: $('arenaPartnerStats'),
+  partnerName: $('arenaPartnerName'), partnerKind: $('arenaPartnerKind'), partnerStats: $('arenaPartnerStats'),
   gachaBack: $('gachaBack'), gachaNext: $('gachaNext'),
   summary: $('arenaSummary'), bossList: $('arenaBossList'),
   ladderHome: $('ladderHome'), ladderEdit: $('ladderEdit'), gotoCertified: $('arenaGotoCertified'),
@@ -254,7 +254,7 @@ const els = {
   hudWallet: $('hudWallet'), hudBoss: $('hudBoss'), hudLive: $('hudLive'),
   connectPanel: $('walletPanel'), connectBtn: $('walletConnect'), walletMsg: $('walletMsg'),
   walletChip: $('walletChip'), walletAddr: $('walletAddr'), disconnectBtn: $('walletDisconnect'),
-  usedNote: $('gachaUsedNote'),
+
   menuCursor: $('menuCursor'), hillCanvas: $('hillCanvas'), bushCanvas: $('bushCanvas'),
 };
 const SCREENS = ['screenHome', 'screenHowto', 'screenTrainer',
@@ -341,9 +341,9 @@ function renderAll() {
   if (S.partner) {
     const st = playerStats();
     paint(els.partnerCanvas, SPR.hamsters[S.partner], SPR.hamsterPals[S.partner], 6);
-    els.partnerName.textContent = HAMSTERS[S.partner].name + (HAMSTERS[S.partner].rare ? ' · RARE 1/1000' : '');
-    els.partnerStats.textContent = HAMSTERS[S.partner].kind + ' · Lv ' + st.level +
-      ' · HP ' + st.maxHp + ' · ATK ' + st.atk;
+    els.partnerName.textContent = HAMSTERS[S.partner].name;
+    els.partnerKind.textContent = HAMSTERS[S.partner].kind;
+    els.partnerStats.textContent = 'Lv ' + st.level + ' · HP ' + st.maxHp + ' · ATK ' + st.atk;
   }
   syncGacha();
   renderCollection();
@@ -575,11 +575,6 @@ function syncGacha() {
   els.rays.hidden = !showPartner;
   els.nav.hidden = false;
   els.gachaNext.hidden = !(opened || S.partner);
-  els.usedNote.hidden = !showPartner;
-  if (showPartner) {
-    els.usedNote.textContent = 'Wallet ' + shortAddr(S.wallet) + ' · partner ' +
-      HAMSTERS[pull.partner].name + ' · Recorded on Sepolia.';
-  }
   if (showPartner && HAMSTERS[pull.partner].rare) els.stage.classList.add('jackpot');
   else els.stage.classList.remove('jackpot');
 }
@@ -800,9 +795,6 @@ function revealPet(id, consumedFree) {
     renderAll();
     burstSparkles(rare ? 18 : 10, rare);
     sfx(rare ? 'fanfare' : 'jingle');
-    if (rare) {
-      els.partnerStats.textContent += ' · JACKPOT! No quizzes, biggest damage.';
-    }
     gachaOpening = false;
   }, rare ? 550 : 380);
 }
@@ -818,7 +810,6 @@ function celebrateMint(id, consumedFree) {
   els.boxCanvas.hidden = false;
   els.partnerBox.hidden = true;
   els.rays.hidden = true;
-  els.usedNote.hidden = true;
   els.prompt.hidden = false;
   els.prompt.textContent = 'OPENING...';
   els.boxCanvas.classList.add('gacha-wiggle-hard');
