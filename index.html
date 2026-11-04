@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Squeek Arena · Quiz Battle vs Squeektoshi</title>
-<meta name="description" content="Squeek Arena: a Pokemon-style quiz battle game on Squeekchain. Pick a trainer, connect your wallet for one gacha pull, open your gacha hamster, and defeat all four Squeektoshi forms.">
+<meta name="description" content="Squeek Arena: a Pokemon-style quiz battle game on Squeekchain. Pick a trainer, connect your wallet for one gacha pull, open your gacha hamster, and defeat Squeektoshi in all five god forms, Bragi to Nous.">
 <!-- SQUEEKCHAIN PAGE TAG: if Squeekchain issues a page tag for the direct verification path, paste it here. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 </head>
 <body>
 <div class="page" id="pageRoot">
-  <div class="hud" aria-hidden="true"><span id="hudWallet">WALLET NONE</span><span id="hudBoss">BOSS 0/4</span><span id="hudLive">WHEEL ...</span></div>
+  <div class="hud" aria-hidden="true"><span id="hudWallet">WALLET NONE</span><span id="hudBoss">BOSS 0/5</span><span id="hudLive">WHEEL ...</span></div>
 
   <main class="view">
     <!-- ============ SCREEN: HOME ============ -->
@@ -44,8 +44,8 @@
         <li>Open your gacha box. 1 in 1000 holds AURUM, the rare hamster that attacks with no quiz.</li>
         <li>Beat the ladder: Lv 5, Lv 25, Lv 50, Lv 100. Questions get harder each level.</li>
         <li>Answer right to attack. Wrong answers and timeouts let the boss hit back. Snacks heal.</li>
-        <li>Beat bosses to earn tokens: 100 per boss, 1000 for PRIME. Spend 100 in the Shop for extra gacha pulls.</li>
-        <li>Beat PRIME to get certified.</li>
+        <li>Beat bosses to earn tokens: 100 per boss, 1000 for NOUS. Spend 100 in the Shop for extra gacha pulls.</li>
+        <li>Beat NOUS to get certified.</li>
       </ol>
       <div class="nav-row">
         <button class="btn" id="howtoBack" type="button">Back</button>
@@ -182,7 +182,7 @@
     <!-- ============ SCREEN: CERTIFIED ============ -->
     <section class="card screen" id="screenCertified" hidden>
       <p class="arena-cert-title">CONGRATS YOU ARE CERTIFIED SQUEEKCHAIN FAMS!!</p>
-      <p id="certNote">All four forms defeated. Save your card. Local fun, not an onchain record.</p>
+      <p id="certNote">All five forms defeated. Save your card. Local fun, not an onchain record.</p>
       <div class="arena-cert-row">
         <canvas id="arenaCertTrainer" class="pixel-sprite" aria-hidden="true"></canvas>
         <canvas id="arenaCertPartner" class="pixel-sprite" aria-hidden="true"></canvas>
@@ -200,7 +200,7 @@
     <canvas id="bushCanvas" class="pixel-sprite bush" width="84" height="36"></canvas>
   </div>
 </div>
-<script src="sprites.js?v=20261104p"></script>
-<script src="arena.js?v=20261104p"></script>
+<script src="sprites.js?v=20261104r"></script>
+<script src="arena.js?v=20261104r"></script>
 </body>
 </html>
