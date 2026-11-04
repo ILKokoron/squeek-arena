@@ -196,22 +196,20 @@
 
     <!-- ============ SCREEN: NETWORK ============ -->
     <section class="card screen" id="screenNetwork" hidden>
-      <div class="net-panel">
-        <div class="net-top">
-          <span class="net-badge" id="netBadge">OFF AIR</span>
-          <a class="net-watch" href="https://squeekchain.com/" target="_blank" rel="noopener">WATCH LIVE &rarr;</a>
-        </div>
-        <p class="net-head">SQUEEKTOSHI</p>
-        <p class="net-state" id="netState">IS SLEEPING</p>
-        <div class="net-stats">
-          <div class="net-stat"><b id="netBlock">-</b><span>BLOCK HEIGHT</span></div>
-          <div class="net-stat"><b id="netPace">-</b><span>PACE /H</span></div>
-          <div class="net-stat"><b id="netRound">-</b><span>ROUND</span></div>
-          <div class="net-stat"><b id="netSettled">-</b><span>SETTLED</span></div>
-        </div>
+      <h2 class="screen-title">NETWORK</h2>
+      <div class="net-stage">
+        <canvas id="netCanvas" width="300" height="140"></canvas>
+      </div>
+      <p class="net-say" id="netState">SQUEEKTOSHI IS SLEEPING.</p>
+      <div class="net-list">
+        <div class="net-item"><span>BLOCK HEIGHT</span><b id="netBlock">-</b></div>
+        <div class="net-item"><span>PACE /H</span><b id="netPace">-</b></div>
+        <div class="net-item"><span>ROUND</span><b id="netRound">-</b></div>
+        <div class="net-item"><span>SETTLED</span><b id="netSettled">-</b></div>
       </div>
       <div class="nav-row">
         <button class="btn btn-ghost" id="networkBack" type="button">Back</button>
+        <a class="btn" href="https://squeekchain.com/" target="_blank" rel="noopener">Watch live</a>
       </div>
     </section>
 
@@ -236,7 +234,7 @@
     <div id="groundHills"></div>
   </div>
 </div>
-<script src="sprites.js?v=20261104ax"></script>
-<script src="arena.js?v=20261104ax"></script>
+<script src="sprites.js?v=20261104ay"></script>
+<script src="arena.js?v=20261104ay"></script>
 </body>
 </html>
