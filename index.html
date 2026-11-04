@@ -167,7 +167,13 @@
       <h2>Mint</h2>
       <div class="shop-card">
         <canvas id="shopBoxCanvas" class="pixel-sprite" aria-hidden="true"></canvas>
-        <p class="shop-price">1ST PULL FREE · EXTRA 0.002 ETH</p>
+        <p class="shop-price">0.002 ETH / MINT</p>
+        <div class="mint-qty">
+          <button class="btn mint-step" id="mintMinus" type="button" aria-label="Less">-</button>
+          <span id="mintQty">1</span>
+          <button class="btn mint-step" id="mintPlus" type="button" aria-label="More">+</button>
+        </div>
+        <p class="shop-price" id="mintTotal">TOTAL 0.002 ETH</p>
         <button class="btn" id="shopConnect" type="button" hidden>Connect wallet</button>
         <button class="btn btn-primary" id="shopBuy" type="button">Mint a pull</button>
         <p class="hint" id="shopMsg"></p>
@@ -198,7 +204,7 @@
     <canvas id="bushCanvas" class="pixel-sprite bush" width="84" height="36"></canvas>
   </div>
 </div>
-<script src="sprites.js?v=20261104t"></script>
-<script src="arena.js?v=20261104t"></script>
+<script src="sprites.js?v=20261104u"></script>
+<script src="arena.js?v=20261104u"></script>
 </body>
 </html>
