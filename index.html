@@ -34,6 +34,10 @@
           <button class="menu-item" id="btnSound" type="button">SOUND ON</button>
         </div>
       </div>
+      <div class="title-links">
+        <button class="mini-btn" id="btnNetwork" type="button">NETWORK</button>
+        <a class="mini-btn" href="https://squeekchain.com/genesis/i/xcmqyqf4" target="_blank" rel="noopener">JOIN GENESIS</a>
+      </div>
     </section>
 
     <!-- ============ SCREEN: HOW TO PLAY ============ -->
@@ -190,10 +194,32 @@
       </div>
     </section>
 
+    <!-- ============ SCREEN: NETWORK ============ -->
+    <section class="card screen" id="screenNetwork" hidden>
+      <div class="net-panel">
+        <div class="net-top">
+          <span class="net-badge" id="netBadge">OFF AIR</span>
+          <a class="net-watch" href="https://squeekchain.com/" target="_blank" rel="noopener">WATCH LIVE &rarr;</a>
+        </div>
+        <p class="net-head">SQUEEKTOSHI</p>
+        <p class="net-state" id="netState">IS SLEEPING</p>
+        <div class="net-stats">
+          <div class="net-stat"><b id="netBlock">-</b><span>BLOCK HEIGHT</span></div>
+          <div class="net-stat"><b id="netPace">-</b><span>PACE /H</span></div>
+          <div class="net-stat"><b id="netRound">-</b><span>ROUND</span></div>
+          <div class="net-stat"><b id="netSettled">-</b><span>SETTLED</span></div>
+        </div>
+      </div>
+      <div class="nav-row">
+        <button class="btn btn-ghost" id="networkBack" type="button">Back</button>
+      </div>
+    </section>
+
     <!-- ============ SCREEN: CERTIFIED ============ -->
     <section class="card screen" id="screenCertified" hidden>
       <p class="arena-cert-title">CONGRATS YOU ARE CERTIFIED SQUEEKCHAIN FAMS!!</p>
       <p id="certNote">All five forms defeated. Save your card. Local fun, not an onchain record.</p>
+      <a class="btn btn-join" href="https://squeekchain.com/genesis/i/xcmqyqf4" target="_blank" rel="noopener">JOIN GENESIS</a>
       <div class="arena-cert-row">
         <canvas id="arenaCertTrainer" class="pixel-sprite" aria-hidden="true"></canvas>
         <canvas id="arenaCertPartner" class="pixel-sprite" aria-hidden="true"></canvas>
@@ -210,7 +236,7 @@
     <div id="groundHills"></div>
   </div>
 </div>
-<script src="sprites.js?v=20261104av"></script>
-<script src="arena.js?v=20261104av"></script>
+<script src="sprites.js?v=20261104aw"></script>
+<script src="arena.js?v=20261104aw"></script>
 </body>
 </html>
