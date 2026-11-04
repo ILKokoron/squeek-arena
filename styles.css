@@ -141,8 +141,6 @@ code{background:#ffe9bd;padding:0 4px;font-size:.92em}
 .arena-trainer-row{display:flex;gap:12px;flex-wrap:wrap}
 .arena-choice{display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff8e6;border:3px solid var(--ink);border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:700;font-family:inherit}
 .arena-choice.selected{background:#ffe1a8;box-shadow:inset 0 0 0 3px #e8622c}
-.arena-aura-label{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
-#arenaAura{padding:8px 10px;border:2px solid var(--ink);border-radius:8px;font-size:1rem;width:180px;background:#fffdf4}
 .arena-gacha-row{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
 .arena-gacha-side{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 .arena-boss-card{display:flex;gap:12px;align-items:center;border:2px solid var(--ink);border-radius:10px;padding:8px 12px;margin:8px 0;background:#fff8e6}
@@ -244,7 +242,6 @@ body{background:#f4f4f4}
 .arena-boss-card{background:#fafafa}
 .arena-choice{background:#ffffff}
 .arena-choice.selected{background:#e9e9e9;box-shadow:inset 0 0 0 3px #141414}
-#arenaAura{background:#ffffff}
 .pk-stage{background:linear-gradient(#ffffff 62%,#e4e4e4 62%)}
 .pk-box{background:#ffffff;box-shadow:inset 0 0 0 3px #e8e8e8}
 .pk-hp-track{background:#e2e2e2}
@@ -257,9 +254,6 @@ body{background:#f4f4f4}
 .screen h2{text-align:center}
 .nav-row{justify-content:center}
 .arena-trainer-row{justify-content:center}
-.arena-aura-label{text-align:center}
-#arenaAura{display:block;margin:0 auto}
-#arenaAuraNote{text-align:center;max-width:52ch;margin-left:auto;margin-right:auto}
 .arena-gacha-row{justify-content:center}
 .arena-gacha-side{align-items:center;text-align:center}
 #screenGacha p{text-align:center}
@@ -353,12 +347,10 @@ body{background:#f4f4f4}
 .wallet-chip{text-align:center;margin:4px 0 0}
 .gacha-used{text-align:center}
 
-/* ================= Shop ================= */
-.shop-balance{text-align:center;font-family:'Press Start 2P',monospace;font-size:13px;margin:6px 0 12px}
-.shop-card{border:3px solid #111;background:#fff;padding:24px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px}
-.shop-card p{margin:0}
-.shop-price{font-family:'Press Start 2P',monospace;font-size:12px}
+/* ================= Mint ================= */
+.mint-card{border:3px solid #111;background:#fff;padding:24px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px}
+.mint-card p{margin:0}
+.mint-price{font-family:'Press Start 2P',monospace;font-size:12px}
 .mint-qty{display:flex;align-items:center;gap:16px}
 .mint-step{width:46px;height:46px;font-size:20px;padding:0;line-height:1}
 #mintQty{font-family:'Press Start 2P',monospace;font-size:17px;min-width:34px}
-.shop-note{text-align:center;margin-top:10px}
