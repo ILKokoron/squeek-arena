@@ -255,13 +255,14 @@ const els = {
   connectPanel: $('walletPanel'), connectBtn: $('walletConnect'), walletMsg: $('walletMsg'),
   walletChip: $('walletChip'), walletAddr: $('walletAddr'), disconnectBtn: $('walletDisconnect'),
 
-  menuCursor: $('menuCursor'), hillCanvas: $('hillCanvas'), bushCanvas: $('bushCanvas'),
+  menuCursor: $('menuCursor'), groundHills: $('groundHills'),
 };
 const SCREENS = ['screenHome', 'screenHowto', 'screenTrainer',
                  'screenGacha', 'screenLadder', 'screenBattle', 'screenCertified', 'screenCollection', 'screenMint', 'screenChoose'];
 function showScreen(id) {
   if (id !== 'screenGacha') ceremonySpecies = null;
   for (const s of SCREENS) { const el = $(s); if (el) el.hidden = s !== id; }
+  renderLandscape(id);
   if (id === 'screenGacha') syncGacha();
   window.scrollTo(0, 0);
 }
@@ -1230,27 +1231,89 @@ els.shareBtn.addEventListener('click', () => {
 
 
 /* ---------- retro decor: hill, bush, menu cursor ---------- */
-const HILL_GRID = [
-  '.......##.......',
-  '......####......',
-  '.....######.....',
-  '....########....',
-  '...##########...',
-  '..############..',
-  '.##############.',
-  '################',
-];
-const BUSH_GRID = [
-  '...##....##...',
-  '.############.',
-  '##############',
-  '##############',
-  '.############.',
-  '..##########..',
-];
+/* Landscape: every screen gets its own hills, in shape and in number. */
+const LAND_SHAPES = {
+  peak: [
+    '.......##.......',
+    '......####......',
+    '.....######.....',
+    '....########....',
+    '...##########...',
+    '..############..',
+    '.##############.',
+    '################',
+  ],
+  bush: [
+    '...##....##...',
+    '.############.',
+    '##############',
+    '##############',
+    '.############.',
+    '..##########..',
+  ],
+  dome: [
+    '.......######.......',
+    '.....##########.....',
+    '...##############...',
+    '..################..',
+    '.##################.',
+    '####################',
+    '####################',
+  ],
+  twin: [
+    '....##........##....',
+    '...####......####...',
+    '..######....######..',
+    '.##################.',
+    '####################',
+    '####################',
+    '####################',
+  ],
+  mesa: [
+    '....############....',
+    '..################..',
+    '.##################.',
+    '####################',
+    '####################',
+    '####################',
+  ],
+  spire: [
+    '....##....',
+    '...####...',
+    '...####...',
+    '..######..',
+    '..######..',
+    '.########.',
+    '.########.',
+    '##########',
+    '##########',
+  ],
+};
+const LAND_VIEWS = {
+  screenHome: [['peak', 'left', 4], ['bush', 'right', 8]],
+  screenHowto: [['dome', 'left', 8], ['spire', 'right', 14]],
+  screenTrainer: [['twin', 'left', 2], ['peak', 'right', 4]],
+  screenGacha: [['spire', 'left', 10], ['dome', 'right', 6]],
+  screenLadder: [['peak', 'left', 6], ['bush', 'left', 46], ['twin', 'right', 2]],
+  screenChoose: [['bush', 'left', 12], ['mesa', 'right', 10]],
+  screenBattle: [['mesa', 'left', 3], ['peak', 'right', 8]],
+  screenCollection: [['dome', 'left', 3], ['bush', 'right', 22], ['spire', 'right', 3]],
+  screenMint: [['twin', 'left', 8], ['bush', 'right', 12]],
+  screenCertified: [['peak', 'left', 10], ['bush', 'left', 47], ['peak', 'right', 10]],
+};
 const GREEN_PAL = { '#': '#111111' };
-paint(els.hillCanvas, HILL_GRID, GREEN_PAL, 6);
-paint(els.bushCanvas, BUSH_GRID, GREEN_PAL, 6);
+function renderLandscape(screenId) {
+  const host = els.groundHills;
+  if (!host) return;
+  host.innerHTML = '';
+  for (const item of (LAND_VIEWS[screenId] || LAND_VIEWS.screenHome)) {
+    const cv = document.createElement('canvas');
+    cv.className = 'ground-hill';
+    cv.style[item[1]] = item[2] + '%';
+    paint(cv, LAND_SHAPES[item[0]], GREEN_PAL, 6);
+    host.appendChild(cv);
+  }
+}
 paint(els.menuCursor, SPR.hamsters.momo, SPR.hamsterPals.momo, 1);
 const menuItems = [els.btnPlay, els.btnHowto, els.btnCollection, els.btnMint, els.btnSound];
 let menuIdx = 0;
