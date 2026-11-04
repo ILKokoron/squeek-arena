@@ -313,15 +313,22 @@ let S = defaultState();
   const reg = loadRegistry();
   if (reg) S.pulls = reg;
   else if (S.pulls && Object.keys(S.pulls).length) storeSigned(REG_KEY, S.pulls);
+  S.wallet = null; // never restore a connection from storage (older saves included)
 }
 if (S.partner) { if (!S.collection) S.collection = {}; S.collection[S.partner] = true; }
-function save() { storeSigned(SAVE_KEY, S); storeSigned(REG_KEY, S.pulls || {}); }
+function save() {
+  // The wallet connection is session-only: it is never written to storage,
+  // so closing or leaving the site ends it and the next visit must connect
+  // and sign again, even if the wallet still trusts this site.
+  storeSigned(SAVE_KEY, Object.assign({}, S, { wallet: null }));
+  storeSigned(REG_KEY, S.pulls || {});
+}
 window.addEventListener('storage', (e) => {
   if (!e || !e.key) return;
   if (e.key === REG_KEY) { const reg = loadRegistry(); if (reg) { S.pulls = reg; renderAll(); } return; }
   if (e.key !== SAVE_KEY || battle) return;
   const data = loadSigned(SAVE_KEY);
-  if (data && data !== 'TAMPERED') { S = Object.assign(defaultState(), data); renderAll(); }
+  if (data && data !== 'TAMPERED') { const w = S.wallet; S = Object.assign(defaultState(), data); S.wallet = w; renderAll(); }
 });
 
 let liveBuff = 0;
