@@ -845,7 +845,7 @@ function renderMint() {
   else if (!live) msg = 'Pet contract is not live yet. Mint opens at launch.';
   else if (minting) msg = 'Minting on Sepolia...';
   else if (freeAvail) { msg = 'Your first mint is FREE · Sepolia testnet.'; can = true; }
-  else { msg = 'Ready for wallet ' + shortAddr(S.wallet) + '.'; can = true; }
+  else { msg = ''; can = true; }
   els.mintMsg.textContent = msg;
   els.mintBuy.disabled = !can;
 }
