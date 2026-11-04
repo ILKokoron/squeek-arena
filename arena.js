@@ -602,11 +602,18 @@ async function ethSend(data, valueHex) {
   return WIN.ethereum.request({ method: 'eth_sendTransaction', params: [{ from: S.wallet, to: PET_CONTRACT.address, data, value: valueHex || '0x0' }] });
 }
 async function ensureSepolia() {
+  const target = '0x' + PET_CONTRACT.chainId.toString(16);
   const id = await WIN.ethereum.request({ method: 'eth_chainId' });
   if (parseInt(id, 16) === PET_CONTRACT.chainId) return true;
   try {
-    await WIN.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x' + PET_CONTRACT.chainId.toString(16) }] });
-  } catch (e) { return false; }
+    await WIN.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: target }] });
+  } catch (e) {
+    if (e && e.code === 4902) {
+      try {
+        await WIN.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: target, chainName: 'Sepolia', nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: ['https://ethereum-sepolia-rpc.publicnode.com'], blockExplorerUrls: ['https://sepolia.etherscan.io'] }] });
+      } catch (e2) { return false; }
+    } else return false;
+  }
   const id2 = await WIN.ethereum.request({ method: 'eth_chainId' });
   return parseInt(id2, 16) === PET_CONTRACT.chainId;
 }
@@ -678,6 +685,10 @@ async function connectWallet() {
     const accounts = await eth.request({ method: 'eth_requestAccounts' });
     if (!accounts || !accounts[0]) {
       els.walletMsg.textContent = 'The wallet returned no account.';
+      return;
+    }
+    if (!(await ensureSepolia())) {
+      els.walletMsg.textContent = 'Switch your wallet network to Sepolia to play.';
       return;
     }
     try {
