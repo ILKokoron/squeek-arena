@@ -104,6 +104,21 @@ for (const tier of ['dasar', 'menengah', 'sulit', 'ahli']) {
   ok(idle.some(q => Logic.correctTextOf(q) === 'No, the queue is clear'), 'settlement question flips when queue empty');
   ok(idle.some(q => Logic.correctTextOf(q) === 'Block 8,430'), 'exact height question also fires while idle');
 }
+{
+  const snapA = { state: 'idle', blockHeight: '8430', blockProgressPct: 47.88, distanceMm: 0, speedMmS: 0, firstHeight: '8430', closedRounds: '1', settledRounds: '1287' };
+  const snapB = { state: 'idle', blockHeight: '8431', blockProgressPct: 47.88, distanceMm: 0, speedMmS: 0, firstHeight: '8430', closedRounds: '1', settledRounds: '1287' };
+  const before = Logic.buildLiveQuestions(snapA);
+  const after = Logic.buildLiveQuestions(snapB);
+  const hq = before.find(q => q.q.includes('what block'));
+  ok(Logic.isLiveQ(hq), 'live questions carry the LIVE tag');
+  ok(!Logic.isLiveQ(Logic.encodeQuestion('Static?', 'a', ['b', 'c', 'd'])), 'static questions are not live');
+  const shown = Logic.makeOptions(hq, () => 0);
+  ok(Logic.freshGradeText(hq, after, shown) === 'Block 8,431', 'chain moved: grading follows the fresh height');
+  ok(Logic.freshGradeText(hq, after, shown.filter(t => t !== 'Block 8,431')) === null, 'fresh answer never shown: original key stands');
+  ok(Logic.freshGradeText(hq, before, shown) === null, 'chain unchanged: original key stands');
+  const fv = Logic.freshVersionOf(hq, after);
+  ok(fv && Logic.correctTextOf(fv) === 'Block 8,431', 'fresh version replaces the frozen question at show time');
+}
 
 console.log('Battle simulations (UI rules mirrored)');
 // Returns true if the ladder is cleared. Player answers correctly with prob p.
