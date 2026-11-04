@@ -257,6 +257,9 @@ const $ = id => document.getElementById(id);
 const els = {
   btnPlay: $('btnPlay'), btnHowto: $('btnHowto'),
   btnCollection: $('btnCollection'), btnSound: $('btnSound'), btnMint: $('btnMint'),
+  btnNetwork: $('btnNetwork'), networkBack: $('networkBack'),
+  netBadge: $('netBadge'), netState: $('netState'), netBlock: $('netBlock'),
+  netPace: $('netPace'), netRound: $('netRound'), netSettled: $('netSettled'),
   mintBoxCanvas: $('mintBoxCanvas'), mintBuy: $('mintBuy'),
   mintMinus: $('mintMinus'), mintPlus: $('mintPlus'), mintQty: $('mintQty'), mintTotal: $('mintTotal'),
   mintMsg: $('mintMsg'), mintBack: $('mintBack'), certNote: $('certNote'),
@@ -294,12 +297,13 @@ const els = {
   menuCursor: $('menuCursor'), groundHills: $('groundHills'),
 };
 const SCREENS = ['screenHome', 'screenHowto', 'screenTrainer',
-                 'screenGacha', 'screenLadder', 'screenBattle', 'screenCertified', 'screenCollection', 'screenMint', 'screenChoose'];
+                 'screenGacha', 'screenLadder', 'screenBattle', 'screenCertified', 'screenCollection', 'screenMint', 'screenChoose', 'screenNetwork'];
 function showScreen(id) {
   if (id !== 'screenGacha') ceremonySpecies = null;
   for (const s of SCREENS) { const el = $(s); if (el) el.hidden = s !== id; }
   renderLandscape(id);
   if (id === 'screenGacha') syncGacha();
+  if (id === 'screenNetwork') { renderNetwork(); refreshLive().then(renderNetwork); }
   window.scrollTo(0, 0);
 }
 
@@ -409,6 +413,7 @@ window.addEventListener('storage', (e) => {
 
 let liveBuff = 0;
 let liveQuestions = [];
+let liveSnapshot = null;
 let battle = null;
 let timerId = null;
 
@@ -482,6 +487,8 @@ els.btnPlay.addEventListener('click', async () => {
 els.btnHowto.addEventListener('click', () => showScreen('screenHowto'));
 els.btnCollection.addEventListener('click', () => showScreen('screenCollection'));
 els.btnMint.addEventListener('click', () => showScreen('screenMint'));
+els.btnNetwork.addEventListener('click', () => showScreen('screenNetwork'));
+els.networkBack.addEventListener('click', () => showScreen('screenHome'));
 els.collectionBack.addEventListener('click', () => showScreen('screenHome'));
 els.btnSound.addEventListener('click', () => {
   soundOn = !soundOn;
@@ -1356,6 +1363,7 @@ const LAND_VIEWS = {
   screenBattle: [['mesa', 'left', 3], ['peak', 'right', 8]],
   screenCollection: [['dome', 'left', 3], ['bush', 'right', 22], ['spire', 'right', 3]],
   screenMint: [['twin', 'left', 8], ['bush', 'right', 12]],
+  screenNetwork: [['mesa', 'left', 8], ['spire', 'right', 12]],
   screenCertified: [['peak', 'left', 10], ['bush', 'left', 47], ['peak', 'right', 10]],
 };
 const GREEN_PAL = { '#': '#111111' };
@@ -1396,6 +1404,44 @@ setCursor(0);
 /* ---------- live data: boss buff + live questions ---------- */
 let liveRefreshP = null;
 let firstBlockHeight = null;
+const PACE_KEY = 'squeekArenaPaceV1';
+function recordPaceSample(heightStr) {
+  const h = Number(heightStr);
+  if (!isFinite(h) || h <= 0) return;
+  try {
+    const arr = JSON.parse(localStorage.getItem(PACE_KEY) || '[]');
+    const now = Date.now();
+    if (arr.length && now - arr[arr.length - 1].t < 60000) return;
+    arr.push({ t: now, h });
+    while (arr.length > 200) arr.shift();
+    localStorage.setItem(PACE_KEY, JSON.stringify(arr));
+  } catch (e) {}
+}
+function pacePerHour() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(PACE_KEY) || '[]');
+    if (arr.length < 2) return null;
+    const a = arr[0], b = arr[arr.length - 1];
+    const hours = (b.t - a.t) / 3600000;
+    if (hours < 1 / 6) return null; // need at least 10 minutes of observation
+    return Math.round((b.h - a.h) / hours);
+  } catch (e) { return null; }
+}
+function fmtNum(n) { return String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function renderNetwork() {
+  const st = liveSnapshot;
+  if (!st) return;
+  const running = st.state === 'running';
+  els.netBadge.textContent = running ? 'ON AIR' : 'OFF AIR';
+  els.netBadge.classList.toggle('on', running);
+  els.netState.textContent = running ? 'IS RUNNING' : 'IS SLEEPING';
+  els.netBlock.textContent = st.blockHeight != null ? fmtNum(st.blockHeight) : '-';
+  const pace = pacePerHour();
+  els.netPace.textContent = pace == null ? '-' : fmtNum(pace);
+  els.netRound.textContent = (st.settledRounds != null && st.closedRounds != null)
+    ? fmtNum(Number(st.settledRounds) + Number(st.closedRounds) + 1) : '-';
+  els.netSettled.textContent = st.settledRounds != null ? fmtNum(st.settledRounds) : '-';
+}
 function refreshLive() {
   if (liveRefreshP) return liveRefreshP;
   const done = () => { liveRefreshP = null; };
@@ -1412,7 +1458,10 @@ function refreshLive() {
       speedMmS: m.speedMmPerSecond != null ? Number(m.speedMmPerSecond) : null,
       firstHeight: firstBlockHeight,
       closedRounds: queued && queued.closedRoundCount != null ? queued.closedRoundCount : null,
+      settledRounds: anchor && anchor.settledThroughRound != null ? anchor.settledThroughRound : null,
     };
+    liveSnapshot = st;
+    recordPaceSample(st.blockHeight);
     if (anchor && anchor.blockProgress != null) {
       const p = Number(anchor.blockProgress) / 1e7; // block units (1e9 per block) to percent
       if (isFinite(p) && p >= 0 && p <= 100) st.blockProgressPct = p;
