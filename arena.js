@@ -231,6 +231,7 @@ const els = {
   mintMinus: $('mintMinus'), mintPlus: $('mintPlus'), mintQty: $('mintQty'), mintTotal: $('mintTotal'),
   shopMsg: $('shopMsg'), shopBack: $('shopBack'), gachaShop: $('gachaShop'), certNote: $('certNote'),
   shopConnect: $('shopConnect'),
+  chooseList: $('chooseList'), chooseBack: $('chooseBack'), chooseBoss: $('chooseBoss'),
   collectionNote: $('collectionNote'), collectionBack: $('collectionBack'),
   colCanvas_Momo: $('colCanvasMomo'), colName_Momo: $('colNameMomo'), colNote_Momo: $('colNoteMomo'),
   colCanvas_Shiro: $('colCanvasShiro'), colName_Shiro: $('colNameShiro'), colNote_Shiro: $('colNoteShiro'),
@@ -263,7 +264,7 @@ const els = {
   menuCursor: $('menuCursor'), hillCanvas: $('hillCanvas'), bushCanvas: $('bushCanvas'),
 };
 const SCREENS = ['screenHome', 'screenHowto', 'screenTrainer',
-                 'screenGacha', 'screenLadder', 'screenBattle', 'screenCertified', 'screenCollection', 'screenShop'];
+                 'screenGacha', 'screenLadder', 'screenBattle', 'screenCertified', 'screenCollection', 'screenShop', 'screenChoose'];
 function showScreen(id) {
   for (const s of SCREENS) { const el = $(s); if (el) el.hidden = s !== id; }
   if (id === 'screenGacha') syncGacha();
@@ -290,7 +291,7 @@ function paint(canvas, grid, pal, px) {
 const SAVE_KEY = 'squeekArenaV1';
 const REG_KEY = 'squeekArenaPullsV1';
 function defaultState() {
-  return { trainer: null, partner: null, opened: false, xp: 0, defeated: [], certified: false, collection: {}, boxes: 0, wallet: null, pulls: {}, pendingPulls: 0 };
+  return { trainer: null, partner: null, opened: false, xp: 0, defeated: [], certified: false, collection: {}, boxes: 0, wallet: null, pulls: {}, pendingPulls: 0, activeTokenId: null };
 }
 function storeSigned(key, obj) {
   try { localStorage.setItem(key, JSON.stringify({ d: obj, s: fnv(JSON.stringify(obj) + '|sqk-arena-v1') })); } catch (e) {}
@@ -374,7 +375,7 @@ function renderAll() {
 
 function unlocked(boss) { return boss.id === 1 || S.defeated.includes(boss.id - 1); }
 function renderLadder() {
-  const ready = S.trainer && S.partner;
+  const ready = S.trainer && S.partner && S.wallet;
   els.summary.textContent = '';
   els.bossList.innerHTML = '';
   for (const boss of BOSSES) {
@@ -393,7 +394,7 @@ function renderLadder() {
     btn.className = 'btn';
     btn.textContent = done ? 'Beaten · replay' : (unlocked(boss) && ready ? 'Challenge' : 'Locked');
     btn.disabled = !ready || !unlocked(boss);
-    btn.addEventListener('click', () => startBattle(boss));
+    btn.addEventListener('click', () => challengeBoss(boss));
     card.appendChild(btn);
     els.bossList.appendChild(card);
   }
@@ -620,6 +621,7 @@ async function waitReceipt(hash) {
 async function chainPetOf(addr) { return decodePetOf(await ethCall(PET_SEL.petOf + encAddress(addr))); }
 async function chainFreeUsed(addr) { return decodeBool(await ethCall(PET_SEL.freeMintUsed + encAddress(addr))); }
 let chainSyncing = false;
+let ownedPets = [];
 async function syncChainState() {
   if (!petLive() || !S.wallet || chainSyncing) return;
   chainSyncing = true;
@@ -636,11 +638,29 @@ async function syncChainState() {
       S.collection[id] = true;
       try {
         const ids = decodeUintArray(await ethCall(PET_SEL.tokensOf + encAddress(S.wallet)));
+        const list = [];
         for (const tid of ids.slice(0, 50)) {
           const sp = Number(BigInt(await ethCall(PET_SEL.speciesOf + encUint(tid))));
-          if (PET_SPECIES[sp]) S.collection[PET_SPECIES[sp]] = true;
+          if (PET_SPECIES[sp]) {
+            S.collection[PET_SPECIES[sp]] = true;
+            list.push({ tokenId: tid, species: PET_SPECIES[sp] });
+          }
+        }
+        if (list.length) ownedPets = list;
+        if (S.activeTokenId == null || !ownedPets.some(p => p.tokenId === S.activeTokenId)) {
+          S.activeTokenId = pet.tokenId;
         }
       } catch (e) { /* collection sync is best effort */ }
+      save();
+    } else {
+      // The chain is the source of truth: this wallet owns no pet, so any
+      // local partner or pull record under it is a leftover from the
+      // browser-only era and must not unlock battles.
+      if (S.pulls && S.pulls[S.wallet]) delete S.pulls[S.wallet];
+      S.partner = null;
+      S.opened = false;
+      S.activeTokenId = null;
+      ownedPets = [];
       save();
     }
   } catch (e) { /* chain sync is best effort; local state stands */ }
@@ -829,6 +849,67 @@ els.mintPlus.addEventListener('click', () => { mintQty = Math.min(MINT_MAX, mint
 els.shopBack.addEventListener('click', () => showScreen('screenHome'));
 els.shopConnect.addEventListener('click', async () => { await connectWallet(); renderAll(); });
 els.gachaShop.addEventListener('click', () => showScreen('screenShop'));
+
+/* ---------- pre-battle hamster picker ---------- */
+let pendingBoss = null;
+function localOwnedPets() {
+  if (!S.partner) return [];
+  return [{ tokenId: S.activeTokenId != null ? S.activeTokenId : null, species: S.partner }];
+}
+async function challengeBoss(boss) {
+  let list = ownedPets;
+  if (petLive() && S.wallet) {
+    try {
+      if (await ensureSepolia()) {
+        const ids = decodeUintArray(await ethCall(PET_SEL.tokensOf + encAddress(S.wallet)));
+        const fresh = [];
+        for (const tid of ids.slice(0, 50)) {
+          const sp = Number(BigInt(await ethCall(PET_SEL.speciesOf + encUint(tid))));
+          if (PET_SPECIES[sp]) fresh.push({ tokenId: tid, species: PET_SPECIES[sp] });
+        }
+        if (fresh.length) { list = fresh; ownedPets = fresh; }
+      }
+    } catch (e) { /* fall back to the last known list */ }
+  }
+  if (!list.length) list = localOwnedPets();
+  if (list.length <= 1) { startBattle(boss); return; }
+  pendingBoss = boss;
+  renderChoose(list);
+  showScreen('screenChoose');
+}
+function renderChoose(list) {
+  els.chooseBoss.textContent = 'VS ' + pendingBoss.name + ' · Lv ' + pendingBoss.level + ' · pick who fights';
+  els.chooseList.innerHTML = '';
+  for (const p of list) {
+    const card = document.createElement('div');
+    card.className = 'arena-boss-card';
+    const cv = document.createElement('canvas');
+    cv.className = 'pixel-sprite';
+    paint(cv, SPR.hamsters[p.species], SPR.hamsterPals[p.species], 3);
+    card.appendChild(cv);
+    const info = document.createElement('div');
+    const st = statsFor(p.species, S.xp);
+    info.innerHTML = '<strong>' + HAMSTERS[p.species].name + (p.tokenId != null ? ' #' + p.tokenId : '') + '</strong>' +
+      (HAMSTERS[p.species].rare ? ' · RARE' : '') +
+      '<br><span class="hint">' + HAMSTERS[p.species].kind + ' · Lv ' + st.level + ' · HP ' + st.maxHp + ' · ATK ' + st.atk + '</span>';
+    card.appendChild(info);
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = 'Fight';
+    btn.addEventListener('click', () => {
+      S.partner = p.species;
+      S.activeTokenId = p.tokenId;
+      save();
+      renderAll();
+      const b = pendingBoss;
+      pendingBoss = null;
+      if (b) startBattle(b);
+    });
+    card.appendChild(btn);
+    els.chooseList.appendChild(card);
+  }
+}
+els.chooseBack.addEventListener('click', () => { pendingBoss = null; showScreen('screenLadder'); });
 
 /* ---------- battle ---------- */
 function hpColor(pct) { return pct > 50 ? '#111111' : pct > 25 ? '#5a5a5a' : '#a8a8a8'; }
