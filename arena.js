@@ -276,6 +276,16 @@ function loadRegistry() {
   const reg = loadSigned(REG_KEY);
   return reg && reg !== 'TAMPERED' && typeof reg === 'object' ? reg : null;
 }
+// One-time clean slate for the onchain launch (2026-11-04): pets are real
+// NFTs now, so legacy browser-only progress (local gacha partners and the
+// local pull registry) is wiped once, on first load of this build.
+try {
+  if (!localStorage.getItem('squeekArenaChainResetV1')) {
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(REG_KEY);
+    localStorage.setItem('squeekArenaChainResetV1', '1');
+  }
+} catch (e) {}
 let S = defaultState();
 {
   const data = loadSigned(SAVE_KEY);
