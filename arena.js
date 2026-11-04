@@ -234,7 +234,7 @@ const els = {
   howtoBack: $('howtoBack'),
   trainerMale: $('arenaTrainerMale'), trainerFemale: $('arenaTrainerFemale'),
   maleCanvas: $('arenaMaleCanvas'), femaleCanvas: $('arenaFemaleCanvas'),
-  trainerHint: $('trainerHint'), trainerBack: $('trainerBack'), trainerNext: $('trainerNext'),
+  trainerBack: $('trainerBack'),
   boxCanvas: $('arenaBoxCanvas'),
   stage: $('gachaStage'), prompt: $('gachaPrompt'), rays: $('gachaRays'), flash: $('gachaFlash'), dim: $('gachaDim'),
   nav: $('gachaNav'),
@@ -344,7 +344,6 @@ function renderAll() {
   paint(els.boxCanvas, SPR.box, SPR.boxPal, 7);
   els.trainerMale.classList.toggle('selected', S.trainer === 'male');
   els.trainerFemale.classList.toggle('selected', S.trainer === 'female');
-  els.trainerHint.textContent = S.trainer ? 'Trainer picked. Hit Next.' : 'Choose one to continue.';
   if (S.partner) {
     const st = playerStats();
     paint(els.partnerCanvas, SPR.hamsters[S.partner], SPR.hamsterPals[S.partner], 6);
@@ -415,13 +414,9 @@ els.btnSound.addEventListener('click', () => {
   if (soundOn) sfx('jingle');
 });
 els.howtoBack.addEventListener('click', () => showScreen('screenHome'));
-els.trainerMale.addEventListener('click', () => { S.trainer = 'male'; save(); renderAll(); });
-els.trainerFemale.addEventListener('click', () => { S.trainer = 'female'; save(); renderAll(); });
+els.trainerMale.addEventListener('click', () => { S.trainer = 'male'; save(); renderAll(); showScreen('screenHome'); });
+els.trainerFemale.addEventListener('click', () => { S.trainer = 'female'; save(); renderAll(); showScreen('screenHome'); });
 els.trainerBack.addEventListener('click', () => showScreen('screenHome'));
-els.trainerNext.addEventListener('click', () => {
-  if (!S.trainer) { els.trainerHint.textContent = 'Pick a trainer first.'; return; }
-  showScreen('screenGacha');
-});
 els.gachaBack.addEventListener('click', () => showScreen('screenTrainer'));
 els.gachaNext.addEventListener('click', () => showScreen('screenLadder'));
 els.ladderHome.addEventListener('click', () => showScreen('screenHome'));
