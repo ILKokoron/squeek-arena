@@ -12,229 +12,229 @@
 </head>
 <body>
 <div class="page" id="pageRoot">
-  <div class="hud" aria-hidden="true"><span id="hudWallet">WALLET NONE</span><span id="hudBoss">BOSS 0/5</span><span id="hudLive">WHEEL ...</span></div>
+<div class="hud" aria-hidden="true"><span id="hudWallet">WALLET NONE</span><span id="hudBoss">BOSS 0/5</span><span id="hudLive">WHEEL ...</span></div>
 
-  <main class="view">
-    <!-- ============ SCREEN: HOME ============ -->
-    <section class="card screen scene" id="screenHome">
-      <div class="cloud cloud-a" aria-hidden="true"></div>
-      <div class="cloud cloud-b" aria-hidden="true"></div>
-      <div class="cloud cloud-c" aria-hidden="true"></div>
-      <div class="title-sign">
-        <h2 class="title-logo">SQUEEK ARENA</h2>
-        <p class="title-sub">A SQUEEKCHAIN QUIZ BATTLE</p>
-      </div>
-      <div class="menu-wrap">
-        <canvas id="menuCursor" class="pixel-sprite menu-cursor" aria-hidden="true"></canvas>
-        <div class="menu-buttons">
-          <button class="menu-item" id="btnPlay" type="button">PLAY</button>
-          <button class="menu-item" id="btnHowto" type="button">HOW TO PLAY</button>
-          <button class="menu-item" id="btnCollection" type="button">COLLECTION</button>
-          <button class="menu-item" id="btnMint" type="button">MINT</button>
-          <button class="menu-item" id="btnSound" type="button">SOUND ON</button>
-        </div>
-      </div>
-      <div class="title-links">
-        <button class="mini-btn" id="btnNetwork" type="button">NETWORK</button>
-        <a class="mini-btn" href="https://squeekchain.com/genesis/i/xcmqyqf4" target="_blank" rel="noopener">JOIN GENESIS</a>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: HOW TO PLAY ============ -->
-    <section class="card screen" id="screenHowto" hidden>
-      <h2>How to play</h2>
-      <ol>
-        <li>Connect your wallet, pick a trainer, then pull your gacha box: one free pull per wallet.</li>
-        <li>Open your gacha box. 1 in 1000 holds AURUM, the rare hamster that attacks with no quiz.</li>
-        <li>Beat the ladder Lv 1-5: BRAGI, THOTH, SARASWATI, ENKI, NOUS. Harder questions each level.</li>
-        <li>Answer right to attack. Wrong answers and timeouts let the boss hit back. Snacks heal.</li>
-        <li>Extra pulls are pet NFTs minted on Sepolia: first pull free (gas only), extra pulls 0.002 ETH.</li>
-        <li>Beat NOUS to get certified.</li>
-      </ol>
-      <div class="nav-row">
-        <button class="btn" id="howtoBack" type="button">Back</button>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: TRAINER ============ -->
-    <section class="card screen" id="screenTrainer" hidden>
-      <h2>Step 1 · Pick your trainer</h2>
-      <div class="arena-trainer-row">
-        <button class="arena-choice" id="arenaTrainerMale" type="button"><canvas id="arenaMaleCanvas" class="pixel-sprite" aria-hidden="true"></canvas><span>Male</span></button>
-        <button class="arena-choice" id="arenaTrainerFemale" type="button"><canvas id="arenaFemaleCanvas" class="pixel-sprite" aria-hidden="true"></canvas><span>Female</span></button>
-      </div>
-      <p class="hint">Tap a trainer to pick yours.</p>
-      <div class="nav-row">
-        <button class="btn btn-ghost" id="trainerBack" type="button">Back</button>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: GACHA ============ -->
-    <section class="card screen" id="screenGacha" hidden>
-      <h2>Step 2 · Your gacha box</h2>
-      <div class="wallet-panel" id="walletPanel">
-        <button class="btn btn-primary" id="walletConnect" type="button">Connect wallet</button>
-        <p class="hint" id="walletMsg"></p>
-      </div>
-      <p class="wallet-chip" id="walletChip" hidden>Wallet <strong id="walletAddr"></strong> · <button class="text-btn" id="walletDisconnect" type="button">Disconnect</button></p>
-      <div class="gacha-stage" id="gachaStage">
-        <div class="gacha-rays" id="gachaRays" aria-hidden="true" hidden></div>
-        <canvas id="arenaBoxCanvas" class="pixel-sprite gacha-box" aria-hidden="true"></canvas>
-        <p class="gacha-prompt" id="gachaPrompt">CLICK BOX TO OPEN</p>
-        <div id="arenaPartner" hidden>
-          <canvas id="arenaPartnerCanvas" class="pixel-sprite gacha-result-sprite" aria-hidden="true"></canvas>
-          <p><strong id="arenaPartnerName"></strong><br><span class="hint" id="arenaPartnerKind"></span><br><span class="hint" id="arenaPartnerStats"></span></p>
-        </div>
-        <div class="gacha-dim" id="gachaDim" aria-hidden="true"></div>
-        <div class="gacha-flash" id="gachaFlash" aria-hidden="true"></div>
-      </div>
-      <div class="nav-row" id="gachaNav" hidden>
-        <button class="btn btn-ghost" id="gachaBack" type="button">Back</button>
-        <button class="btn" id="gachaNext" type="button">To the arena</button>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: LADDER ============ -->
-    <section class="card screen" id="screenLadder" hidden>
-      <h2>Arena</h2>
-      <p id="arenaSummary"></p>
-      <div id="arenaBossList"></div>
-      <div class="nav-row">
-        <button class="btn btn-ghost" id="ladderHome" type="button">Main menu</button>
-        <button class="btn btn-ghost" id="ladderEdit" type="button">Change trainer / partner</button>
-        <button class="btn" id="arenaGotoCertified" type="button" hidden>View FAMS certificate</button>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: CHOOSE HAMSTER ============ -->
-    <section class="card screen" id="screenChoose" hidden>
-      <h2>Choose your hamster</h2>
-      <p class="hint" id="chooseBoss"></p>
-      <div id="chooseList"></div>
-      <div class="nav-row">
-        <button class="btn" id="chooseBack" type="button">Back</button>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: BATTLE ============ -->
-    <section class="card screen" id="screenBattle" hidden>
-      <div class="pk-stage">
-        <div class="pk-info pk-info-enemy">
-          <div class="pk-info-row"><span id="pkBossName"></span><span id="pkBossLv"></span></div>
-          <div class="pk-hp"><span class="pk-hp-label">HP</span><div class="pk-hp-track"><div class="pk-hp-fill" id="pkBossHpFill"></div></div></div>
-          <div class="pk-hp-num" id="pkBossHpText"></div>
-        </div>
-        <canvas id="arenaBossCanvas" class="pixel-sprite pk-boss" aria-hidden="true"></canvas>
-        <canvas id="arenaTrainerCanvas" class="pixel-sprite pk-trainer" aria-hidden="true"></canvas>
-        <canvas id="arenaPlayerCanvas" class="pixel-sprite pk-player" aria-hidden="true"></canvas>
-        <div class="pk-info pk-info-player">
-          <div class="pk-info-row"><span id="pkPlayerName"></span><span id="pkPlayerLv"></span></div>
-          <div class="pk-hp"><span class="pk-hp-label">HP</span><div class="pk-hp-track"><div class="pk-hp-fill" id="pkPlayerHpFill"></div></div></div>
-          <div class="pk-hp-num" id="pkPlayerHpText"></div>
-        </div>
-      </div>
-      <div class="pk-box">
-        <p id="arenaMsg" class="pk-msg" role="status"></p>
-        <p id="arenaQ" class="pk-q"></p>
-        <div class="pk-timer"><div class="pk-timer-fill" id="arenaTimerFill"></div></div>
-        <div id="arenaAnswers" class="pk-answers"></div>
-        <div class="pk-actions">
-          <button class="btn" id="arenaAttack" type="button" hidden>ATTACK</button>
-          <button class="btn btn-ghost" id="arenaSnack" type="button">Snack (3) · heal 25</button>
-          <button class="btn btn-ghost" id="arenaRun" type="button">Run</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: COLLECTION ============ -->
-    <section class="card screen" id="screenCollection" hidden>
-      <h2>Hamster collection</h2>
-      <p class="hint collection-note" id="collectionNote">Collected 0 of 4 · Boxes opened: 0</p>
-      <div class="collection-grid">
-        <div class="collection-card">
-          <canvas id="colCanvasMomo" class="pixel-sprite" aria-hidden="true"></canvas>
-          <p><strong id="colNameMomo">???</strong><br><span class="hint" id="colNoteMomo">Not pulled yet</span></p>
-        </div>
-        <div class="collection-card">
-          <canvas id="colCanvasShiro" class="pixel-sprite" aria-hidden="true"></canvas>
-          <p><strong id="colNameShiro">???</strong><br><span class="hint" id="colNoteShiro">Not pulled yet</span></p>
-        </div>
-        <div class="collection-card">
-          <canvas id="colCanvasGoma" class="pixel-sprite" aria-hidden="true"></canvas>
-          <p><strong id="colNameGoma">???</strong><br><span class="hint" id="colNoteGoma">Not pulled yet</span></p>
-        </div>
-        <div class="collection-card">
-          <canvas id="colCanvasAurum" class="pixel-sprite" aria-hidden="true"></canvas>
-          <p><strong id="colNameAurum">???</strong><br><span class="hint" id="colNoteAurum">RARE · 1 in 1000 boxes</span></p>
-        </div>
-      </div>
-      <div class="nav-row">
-        <button class="btn" id="collectionBack" type="button">Back</button>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: MINT ============ -->
-    <section class="card screen" id="screenMint" hidden>
-      <h2>Mint</h2>
-      <div class="mint-card">
-        <canvas id="mintBoxCanvas" class="pixel-sprite" aria-hidden="true"></canvas>
-        <p class="mint-price">0.002 ETH / MINT</p>
-        <div class="mint-qty">
-          <button class="btn mint-step" id="mintMinus" type="button" aria-label="Less">-</button>
-          <span id="mintQty">1</span>
-          <button class="btn mint-step" id="mintPlus" type="button" aria-label="More">+</button>
-        </div>
-        <p class="mint-price" id="mintTotal">TOTAL 0.002 ETH</p>
-        <button class="btn" id="mintConnect" type="button" hidden>Connect wallet</button>
-        <button class="btn btn-primary" id="mintBuy" type="button">Mint</button>
-        <p class="hint" id="mintMsg"></p>
-      </div>
-      <div class="nav-row">
-        <button class="btn" id="mintBack" type="button">Back</button>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: NETWORK ============ -->
-    <section class="card screen" id="screenNetwork" hidden>
-      <h2 class="screen-title">NETWORK</h2>
-      <div class="net-stage">
-        <canvas id="netCanvas" width="300" height="140"></canvas>
-      </div>
-      <p class="net-say" id="netState">SQUEEKTOSHI IS SLEEPING.</p>
-      <div class="net-list">
-        <div class="net-item"><span>BLOCK HEIGHT</span><b id="netBlock">-</b></div>
-        <div class="net-item"><span>PACE /H</span><b id="netPace">-</b></div>
-        <div class="net-item"><span>ROUND</span><b id="netRound">-</b></div>
-        <div class="net-item"><span>SETTLED</span><b id="netSettled">-</b></div>
-      </div>
-      <div class="nav-row">
-        <button class="btn btn-ghost" id="networkBack" type="button">Back</button>
-        <a class="btn" href="https://squeekchain.com/" target="_blank" rel="noopener">Watch live</a>
-      </div>
-    </section>
-
-    <!-- ============ SCREEN: CERTIFIED ============ -->
-    <section class="card screen" id="screenCertified" hidden>
-      <p class="arena-cert-title">CONGRATS YOU ARE CERTIFIED SQUEEKCHAIN FAMS!!</p>
-      <p id="certNote">All five forms defeated. Save your card. Local fun, not an onchain record.</p>
-      <a class="btn btn-join" href="https://squeekchain.com/genesis/i/xcmqyqf4" target="_blank" rel="noopener">JOIN GENESIS</a>
-      <div class="arena-cert-row">
-        <canvas id="arenaCertTrainer" class="pixel-sprite" aria-hidden="true"></canvas>
-        <canvas id="arenaCertPartner" class="pixel-sprite" aria-hidden="true"></canvas>
-      </div>
-      <div class="nav-row">
-        <button class="btn" id="arenaShareBtn" type="button">Download certified card</button>
-        <button class="btn btn-ghost" id="certLadder" type="button">Boss ladder</button>
-        <button class="btn btn-ghost" id="certHome" type="button">Main menu</button>
-      </div>
-      <canvas id="arenaShareCanvas" width="1200" height="630" hidden></canvas>
-    </section>
-  </main>
-  <div class="ground" aria-hidden="true">
-    <div id="groundHills"></div>
-  </div>
+<main class="view">
+<!-- ============ SCREEN: HOME ============ -->
+<section class="card screen scene" id="screenHome">
+<div class="cloud cloud-a" aria-hidden="true"></div>
+<div class="cloud cloud-b" aria-hidden="true"></div>
+<div class="cloud cloud-c" aria-hidden="true"></div>
+<div class="title-sign">
+<h2 class="title-logo">SQUEEK ARENA</h2>
+<p class="title-sub">A SQUEEKCHAIN QUIZ BATTLE</p>
 </div>
-<script src="sprites.js?v=20261104bc"></script>
-<script src="arena.js?v=20261104bc"></script>
+<div class="menu-wrap">
+<canvas id="menuCursor" class="pixel-sprite menu-cursor" aria-hidden="true"></canvas>
+<div class="menu-buttons">
+<button class="menu-item" id="btnPlay" type="button">PLAY</button>
+<button class="menu-item" id="btnHowto" type="button">HOW TO PLAY</button>
+<button class="menu-item" id="btnCollection" type="button">COLLECTION</button>
+<button class="menu-item" id="btnMint" type="button">MINT</button>
+<button class="menu-item" id="btnSound" type="button">SOUND ON</button>
+</div>
+</div>
+<div class="title-links">
+<button class="mini-btn" id="btnNetwork" type="button">NETWORK</button>
+<a class="mini-btn" href="https://squeekchain.com/genesis/i/xcmqyqf4" target="_blank" rel="noopener">JOIN GENESIS</a>
+</div>
+</section>
+
+<!-- ============ SCREEN: HOW TO PLAY ============ -->
+<section class="card screen" id="screenHowto" hidden>
+<h2>How to play</h2>
+<ol>
+<li>Connect your wallet, pick a trainer, then pull your gacha box: one free pull per wallet.</li>
+<li>Open your gacha box. 1 in 1000 holds AURUM, the rare hamster that attacks with no quiz.</li>
+<li>Beat the ladder Lv 1-5: BRAGI, THOTH, SARASWATI, ENKI, NOUS. Harder questions each level.</li>
+<li>Answer right to attack. Wrong answers and timeouts let the boss hit back. Snacks heal.</li>
+<li>Extra pulls are pet NFTs minted on Sepolia: first pull free (gas only), extra pulls 0.002 ETH.</li>
+<li>Beat NOUS to get certified.</li>
+</ol>
+<div class="nav-row">
+<button class="btn" id="howtoBack" type="button">Back</button>
+</div>
+</section>
+
+<!-- ============ SCREEN: TRAINER ============ -->
+<section class="card screen" id="screenTrainer" hidden>
+<h2>Step 1 · Pick your trainer</h2>
+<div class="arena-trainer-row">
+<button class="arena-choice" id="arenaTrainerMale" type="button"><canvas id="arenaMaleCanvas" class="pixel-sprite" aria-hidden="true"></canvas><span>Male</span></button>
+<button class="arena-choice" id="arenaTrainerFemale" type="button"><canvas id="arenaFemaleCanvas" class="pixel-sprite" aria-hidden="true"></canvas><span>Female</span></button>
+</div>
+<p class="hint">Tap a trainer to pick yours.</p>
+<div class="nav-row">
+<button class="btn btn-ghost" id="trainerBack" type="button">Back</button>
+</div>
+</section>
+
+<!-- ============ SCREEN: GACHA ============ -->
+<section class="card screen" id="screenGacha" hidden>
+<h2>Step 2 · Your gacha box</h2>
+<div class="wallet-panel" id="walletPanel">
+<button class="btn btn-primary" id="walletConnect" type="button">Connect wallet</button>
+<p class="hint" id="walletMsg"></p>
+</div>
+<p class="wallet-chip" id="walletChip" hidden>Wallet <strong id="walletAddr"></strong> · <button class="text-btn" id="walletDisconnect" type="button">Disconnect</button></p>
+<div class="gacha-stage" id="gachaStage">
+<div class="gacha-rays" id="gachaRays" aria-hidden="true" hidden></div>
+<canvas id="arenaBoxCanvas" class="pixel-sprite gacha-box" aria-hidden="true"></canvas>
+<p class="gacha-prompt" id="gachaPrompt">CLICK BOX TO OPEN</p>
+<div id="arenaPartner" hidden>
+<canvas id="arenaPartnerCanvas" class="pixel-sprite gacha-result-sprite" aria-hidden="true"></canvas>
+<p><strong id="arenaPartnerName"></strong><br><span class="hint" id="arenaPartnerKind"></span><br><span class="hint" id="arenaPartnerStats"></span></p>
+</div>
+<div class="gacha-dim" id="gachaDim" aria-hidden="true"></div>
+<div class="gacha-flash" id="gachaFlash" aria-hidden="true"></div>
+</div>
+<div class="nav-row" id="gachaNav" hidden>
+<button class="btn btn-ghost" id="gachaBack" type="button">Back</button>
+<button class="btn" id="gachaNext" type="button">To the arena</button>
+</div>
+</section>
+
+<!-- ============ SCREEN: LADDER ============ -->
+<section class="card screen" id="screenLadder" hidden>
+<h2>Arena</h2>
+<p id="arenaSummary"></p>
+<div id="arenaBossList"></div>
+<div class="nav-row">
+<button class="btn btn-ghost" id="ladderHome" type="button">Main menu</button>
+<button class="btn btn-ghost" id="ladderEdit" type="button">Change trainer / partner</button>
+<button class="btn" id="arenaGotoCertified" type="button" hidden>View FAMS certificate</button>
+</div>
+</section>
+
+<!-- ============ SCREEN: CHOOSE HAMSTER ============ -->
+<section class="card screen" id="screenChoose" hidden>
+<h2>Choose your hamster</h2>
+<p class="hint" id="chooseBoss"></p>
+<div id="chooseList"></div>
+<div class="nav-row">
+<button class="btn" id="chooseBack" type="button">Back</button>
+</div>
+</section>
+
+<!-- ============ SCREEN: BATTLE ============ -->
+<section class="card screen" id="screenBattle" hidden>
+<div class="pk-stage">
+<div class="pk-info pk-info-enemy">
+<div class="pk-info-row"><span id="pkBossName"></span><span id="pkBossLv"></span></div>
+<div class="pk-hp"><span class="pk-hp-label">HP</span><div class="pk-hp-track"><div class="pk-hp-fill" id="pkBossHpFill"></div></div></div>
+<div class="pk-hp-num" id="pkBossHpText"></div>
+</div>
+<canvas id="arenaBossCanvas" class="pixel-sprite pk-boss" aria-hidden="true"></canvas>
+<canvas id="arenaTrainerCanvas" class="pixel-sprite pk-trainer" aria-hidden="true"></canvas>
+<canvas id="arenaPlayerCanvas" class="pixel-sprite pk-player" aria-hidden="true"></canvas>
+<div class="pk-info pk-info-player">
+<div class="pk-info-row"><span id="pkPlayerName"></span><span id="pkPlayerLv"></span></div>
+<div class="pk-hp"><span class="pk-hp-label">HP</span><div class="pk-hp-track"><div class="pk-hp-fill" id="pkPlayerHpFill"></div></div></div>
+<div class="pk-hp-num" id="pkPlayerHpText"></div>
+</div>
+</div>
+<div class="pk-box">
+<p id="arenaMsg" class="pk-msg" role="status"></p>
+<p id="arenaQ" class="pk-q"></p>
+<div class="pk-timer"><div class="pk-timer-fill" id="arenaTimerFill"></div></div>
+<div id="arenaAnswers" class="pk-answers"></div>
+<div class="pk-actions">
+<button class="btn" id="arenaAttack" type="button" hidden>ATTACK</button>
+<button class="btn btn-ghost" id="arenaSnack" type="button">Snack (3) · heal 25</button>
+<button class="btn btn-ghost" id="arenaRun" type="button">Run</button>
+</div>
+</div>
+</section>
+
+<!-- ============ SCREEN: COLLECTION ============ -->
+<section class="card screen" id="screenCollection" hidden>
+<h2>Hamster collection</h2>
+<p class="hint collection-note" id="collectionNote">Collected 0 of 4 · Boxes opened: 0</p>
+<div class="collection-grid">
+<div class="collection-card">
+<canvas id="colCanvasMomo" class="pixel-sprite" aria-hidden="true"></canvas>
+<p><strong id="colNameMomo">???</strong><br><span class="hint" id="colNoteMomo">Not pulled yet</span></p>
+</div>
+<div class="collection-card">
+<canvas id="colCanvasShiro" class="pixel-sprite" aria-hidden="true"></canvas>
+<p><strong id="colNameShiro">???</strong><br><span class="hint" id="colNoteShiro">Not pulled yet</span></p>
+</div>
+<div class="collection-card">
+<canvas id="colCanvasGoma" class="pixel-sprite" aria-hidden="true"></canvas>
+<p><strong id="colNameGoma">???</strong><br><span class="hint" id="colNoteGoma">Not pulled yet</span></p>
+</div>
+<div class="collection-card">
+<canvas id="colCanvasAurum" class="pixel-sprite" aria-hidden="true"></canvas>
+<p><strong id="colNameAurum">???</strong><br><span class="hint" id="colNoteAurum">RARE · 1 in 1000 boxes</span></p>
+</div>
+</div>
+<div class="nav-row">
+<button class="btn" id="collectionBack" type="button">Back</button>
+</div>
+</section>
+
+<!-- ============ SCREEN: MINT ============ -->
+<section class="card screen" id="screenMint" hidden>
+<h2>Mint</h2>
+<div class="mint-card">
+<canvas id="mintBoxCanvas" class="pixel-sprite" aria-hidden="true"></canvas>
+<p class="mint-price">0.002 ETH / MINT</p>
+<div class="mint-qty">
+<button class="btn mint-step" id="mintMinus" type="button" aria-label="Less">-</button>
+<span id="mintQty">1</span>
+<button class="btn mint-step" id="mintPlus" type="button" aria-label="More">+</button>
+</div>
+<p class="mint-price" id="mintTotal">TOTAL 0.002 ETH</p>
+<button class="btn" id="mintConnect" type="button" hidden>Connect wallet</button>
+<button class="btn btn-primary" id="mintBuy" type="button">Mint</button>
+<p class="hint" id="mintMsg"></p>
+</div>
+<div class="nav-row">
+<button class="btn" id="mintBack" type="button">Back</button>
+</div>
+</section>
+
+<!-- ============ SCREEN: NETWORK ============ -->
+<section class="card screen" id="screenNetwork" hidden>
+<h2 class="screen-title">NETWORK</h2>
+<div class="net-stage">
+<canvas id="netCanvas" width="300" height="140"></canvas>
+</div>
+<p class="net-say" id="netState">SQUEEKTOSHI IS SLEEPING.</p>
+<div class="net-list">
+<div class="net-item"><span>BLOCK HEIGHT</span><b id="netBlock">-</b></div>
+<div class="net-item"><span>PACE /H</span><b id="netPace">-</b></div>
+<div class="net-item"><span>ROUND</span><b id="netRound">-</b></div>
+<div class="net-item"><span>SETTLED</span><b id="netSettled">-</b></div>
+</div>
+<div class="nav-row">
+<button class="btn btn-ghost" id="networkBack" type="button">Back</button>
+<a class="btn" href="https://squeekchain.com/" target="_blank" rel="noopener">Watch live</a>
+</div>
+</section>
+
+<!-- ============ SCREEN: CERTIFIED ============ -->
+<section class="card screen" id="screenCertified" hidden>
+<p class="arena-cert-title">CONGRATS YOU ARE CERTIFIED SQUEEKCHAIN FAMS!!</p>
+<p id="certNote">All five forms defeated. Save your card. Local fun, not an onchain record.</p>
+<a class="btn btn-join" href="https://squeekchain.com/genesis/i/xcmqyqf4" target="_blank" rel="noopener">JOIN GENESIS</a>
+<div class="arena-cert-row">
+<canvas id="arenaCertTrainer" class="pixel-sprite" aria-hidden="true"></canvas>
+<canvas id="arenaCertPartner" class="pixel-sprite" aria-hidden="true"></canvas>
+</div>
+<div class="nav-row">
+<button class="btn" id="arenaShareBtn" type="button">Download certified card</button>
+<button class="btn btn-ghost" id="certLadder" type="button">Boss ladder</button>
+<button class="btn btn-ghost" id="certHome" type="button">Main menu</button>
+</div>
+<canvas id="arenaShareCanvas" width="1200" height="630" hidden></canvas>
+</section>
+</main>
+<div class="ground" aria-hidden="true">
+<div id="groundHills"></div>
+</div>
+</div>
+<script src="sprites.js?v=20261104bd"></script>
+<script src="arena.js?v=20261104bd"></script>
 </body>
 </html>
