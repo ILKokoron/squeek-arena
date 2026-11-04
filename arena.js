@@ -349,7 +349,6 @@ function renderAll() {
   renderCollection();
   renderMint();
   if (!S.wallet) els.btnPlay.textContent = 'CONNECT WALLET';
-  else if (S.certified || S.partner) els.btnPlay.textContent = 'CONTINUE';
   else els.btnPlay.textContent = 'PLAY';
   els.hudWallet.textContent = 'WALLET ' + (S.wallet ? shortAddr(S.wallet).toUpperCase() : 'NONE');
   els.hudBoss.textContent = 'BOSS ' + S.defeated.length + '/' + BOSSES.length;
