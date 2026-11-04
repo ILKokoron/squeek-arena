@@ -113,10 +113,8 @@ function recordPull(pulls, addr, hamsterId, at) {
   pulls[key] = { partner: hamsterId, at: at || 0 };
   return true;
 }
-/* Pet NFT contract (Squeek Arena Pets, Sepolia, deployed 2026-11-04).
-   The first pull is a free mint (gas only), extra pulls are paid mints at
-   priceEth. The contract rolls the species at mint time, so the hamster
-   revealed in the gacha is always the exact pet that was minted. */
+/* Pet NFT contract (Sepolia, deployed 2026-11-04): first pull is a free
+   mint, extra pulls are paid; the species is rolled at mint time. */
 const PET_CONTRACT = { address: '0x3ac243475b0D782a05B40Eb9546E25bb986BB6DD', chainId: 11155111, priceEth: '0.002' };
 const MINT_MAX = 10;
 function mintTotalEth(qty) { return (qty * Number(PET_CONTRACT.priceEth)).toFixed(3); }
@@ -173,9 +171,7 @@ function correctTextOf(question) { for (const o of question.o) { const t = decOp
 function makeOptions(question, rng) {
   return shuffle(question.o.map(decOpt), rng);
 }
-/* Live questions ask about the chain's state at this moment, never about
-   exact numbers: wheel state, block fullness, pace, milestones, and what
-   changed since the player arrived. Generated fresh at every battle start. */
+/* Live questions ask about the chain's state now, never exact numbers. */
 function buildLiveQuestions(st) {
   if (!st) return [];
   const out = [];
@@ -299,8 +295,7 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
-/* Sprites are rendered once into an offscreen cache and blitted after that:
-   repainting hundreds of single pixels on every render made menus feel heavy. */
+/* Sprites render once into an offscreen cache, then blit. */
 const gridIds = new WeakMap();
 let gridSeq = 0;
 function gridId(g) {
@@ -362,9 +357,7 @@ function loadRegistry() {
   const reg = loadSigned(REG_KEY);
   return reg && reg !== 'TAMPERED' && typeof reg === 'object' ? reg : null;
 }
-/* Signatures are remembered per wallet for a week of inactivity: connecting
-   inside that window skips the sign popup, and every successful connect
-   restarts the week. A full week away means signing again. */
+/* Signatures are remembered per wallet for a week of inactivity. */
 function loadSignMap() {
   const d = loadSigned(SIGN_KEY);
   return d && d !== 'TAMPERED' && typeof d === 'object' ? d : {};
@@ -414,7 +407,7 @@ function playerStats() { return S.partner ? statsFor(S.partner, S.xp) : null; }
 function renderAll() {
   paint(els.maleCanvas, SPR.trainers.male, SPR.trainerPal, 4);
   paint(els.femaleCanvas, SPR.trainers.female, SPR.trainerPal, 4);
-  paint(els.boxCanvas, SPR.box, SPR.boxPal, 7);
+  paint(els.boxCanvas, SPR.box, SPR.boxPal, 6);
   els.trainerMale.classList.toggle('selected', S.trainer === 'male');
   els.trainerFemale.classList.toggle('selected', S.trainer === 'female');
   if (S.partner) {
@@ -601,9 +594,7 @@ let gachaOpening = false;
 let ceremonySpecies = null;
 function shortAddr(a) { return a ? a.slice(0, 6) + '..' + a.slice(-4) : ''; }
 function currentPull() { return S.wallet ? pullFor(S.pulls, S.wallet) : null; }
-/* The box opens while the wallet's FREE mint is unused onchain, even if the
-   wallet already owns paid pets. The chain flag rules once it is known;
-   before that, the local pull record stands in for it. */
+/* The box opens while the wallet's FREE mint is unused onchain. */
 function gachaBoxUsed() {
   return freeMintUsedKnown != null ? freeMintUsedKnown : !!currentPull();
 }
@@ -770,9 +761,9 @@ try {
   }
 } catch (e) { /* wallet events optional */ }
 function paintOpenedBox() {
-  const grid = SPR.box, pal = SPR.boxPal, px = 7;
+  const grid = SPR.box, pal = SPR.boxPal, px = 6;
   const c = els.boxCanvas, ctx = c.getContext('2d');
-  const W = grid[0].length, H = grid.length, lift = 6, split = 9;
+  const W = grid[0].length, H = grid.length, lift = 6, split = 11;
   c.width = W * px;
   c.height = (H + lift) * px;
   ctx.clearRect(0, 0, c.width, c.height);
@@ -797,9 +788,7 @@ function burstSparkles(n, big) {
     setTimeout(() => s.remove(), 900);
   }
 }
-/* Opening the box IS the mint: the wallet confirmation pops first, the
-   contract rolls the species onchain, and the hamster that bursts out is
-   read back from the contract, so the reveal always matches the NFT. */
+/* Opening the box IS the mint; the reveal reads the pet back onchain. */
 async function startOpening() {
   if (gachaOpening || !S.wallet) return;
   if (gachaBoxUsed()) return;
@@ -861,12 +850,11 @@ function revealPet(id, consumedFree) {
 els.boxCanvas.addEventListener('click', startOpening);
 els.prompt.addEventListener('click', startOpening);
 
-/* A mint from the panel gets the same reveal ceremony as the gacha box:
-   over to the gacha stage, wiggle the closed box, then the shared pop. */
+/* A panel mint gets the same reveal ceremony as the gacha box. */
 function celebrateMint(id, consumedFree) {
   ceremonySpecies = id;
   showScreen('screenGacha');
-  paint(els.boxCanvas, SPR.box, SPR.boxPal, 7);
+  paint(els.boxCanvas, SPR.box, SPR.boxPal, 6);
   els.boxCanvas.hidden = false;
   els.partnerBox.hidden = true;
   els.rays.hidden = true;
@@ -886,7 +874,7 @@ let mintQty = 1;
 let minting = false;
 function renderMint() {
   if (!els.mintMsg) return;
-  paint(els.mintBoxCanvas, SPR.box, SPR.boxPal, 4);
+  paint(els.mintBoxCanvas, SPR.box, SPR.boxPal, 3);
   const freeAvail = freeMintUsedKnown === false;
   if (els.mintQty) {
     els.mintQty.textContent = String(mintQty);
@@ -1287,7 +1275,7 @@ els.shareBtn.addEventListener('click', () => {
 
 
 /* ---------- retro decor: hill, bush, menu cursor ---------- */
-/* Landscape: every screen gets its own hills, in shape and in number. */
+/* Landscape: every screen gets its own hills. */
 const LAND_SHAPES = {
   peak: [
     '.......##.......',
@@ -1432,9 +1420,7 @@ function renderNetwork() {
     ? fmtNum(Number(st.settledRounds) + Number(st.closedRounds) + 1) : '-';
   els.netSettled.textContent = st.settledRounds != null ? fmtNum(st.settledRounds) : '-';
 }
-/* Network scene: the Sprint side-profile hamster in Arena greys, on his wheel.
-   Running: the wheel spins (faster with the real wheel speed) and his legs
-   alternate. Resting: he sleeps beside the wheel and the Zs float up. */
+/* Network scene: the Sprint side hamster in Arena greys, on his wheel. */
 const NET_HAMSTER = [
   '................OOO.......',
   '...............OBBBO......',
