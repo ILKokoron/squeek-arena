@@ -1,21 +1,22 @@
 /* Squeek Arena: a Pokemon-style quiz battle ladder against Squeektoshi.
    Flow (designed with kokoron): pick a trainer (male or female), open the
-   gacha box every player gets, then climb 4 boss levels. Correct answers make
+   gacha box every player gets, then climb 5 boss levels. Correct answers make
    your hamster attack; wrong answers let the boss counter. Boss forms get
    scarier and questions harder per level. AURUM, the 1 in 1000 rare hamster,
    needs no questions: it attacks directly for the highest damage. Each wallet
    address gets exactly one gacha pull, recorded locally in the browser.
-   Beating PRIME shows the certified screen. Progress is local only and
+   Beating NOUS shows the certified screen. Progress is local only and
    never claimed to be onchain. */
 (function (global) {
 'use strict';
 
 /* ============================== DATA ============================== */
 const BOSSES = [
-  { id: 1, name: 'SQUEEKTOSHI',        level: 5,   form: '1', hp: 64,  atk: 7,  tier: 'dasar',    seconds: 20 },
-  { id: 2, name: 'SQUEEKTOSHI MK-II',  level: 25,  form: '2', hp: 120, atk: 11, tier: 'menengah', seconds: 18 },
-  { id: 3, name: 'SQUEEKTOSHI MK-III', level: 50,  form: '3', hp: 185, atk: 15, tier: 'sulit',    seconds: 15 },
-  { id: 4, name: 'SQUEEKTOSHI PRIME',  level: 100, form: '4', hp: 275, atk: 20, tier: 'ahli',     seconds: 12 },
+  { id: 1, name: 'BRAGI',    level: 1, form: '1', hp: 55,  atk: 6,  tier: 'dasar',    seconds: 20 },
+  { id: 2, name: 'THOTH',    level: 2, form: '2', hp: 85,  atk: 9,  tier: 'menengah', seconds: 18 },
+  { id: 3, name: 'SARASWATI', level: 3, form: '3', hp: 125, atk: 12, tier: 'sulit',    seconds: 16 },
+  { id: 4, name: 'ATHENA',   level: 4, form: '4', hp: 175, atk: 16, tier: 'ahli',     seconds: 14 },
+  { id: 5, name: 'NOUS',     level: 5, form: '5', hp: 240, atk: 20, tier: 'ahli',     seconds: 12 },
 ];
 const HAMSTERS = {
   momo:  { name: 'MOMO',  kind: 'Golden hamster', atk: 12, hp: 74,  rare: false },
@@ -318,7 +319,7 @@ function renderAll() {
   else if (S.certified || S.partner) els.btnPlay.textContent = 'CONTINUE';
   else els.btnPlay.textContent = 'PLAY';
   els.hudWallet.textContent = 'WALLET ' + (S.wallet ? shortAddr(S.wallet).toUpperCase() : 'NONE');
-  els.hudBoss.textContent = 'BOSS ' + S.defeated.length + '/4';
+  els.hudBoss.textContent = 'BOSS ' + S.defeated.length + '/' + BOSSES.length;
   renderLadder();
 }
 
@@ -941,7 +942,7 @@ els.shareBtn.addEventListener('click', () => {
       }
   };
   ctx.fillStyle = '#111111'; ctx.fillRect(724, 484, 436, 10);
-  draw(SPR.bossForms['4'], SPR.bossPals['4'], 740, 290, 6);
+  draw(SPR.bossForms['5'], SPR.bossPals['5'], 740, 290, 6);
   draw(SPR.hamsters[S.partner], SPR.hamsterPals[S.partner], 968, 290, 6);
   cv.toBlob(blob => {
     const a = document.createElement('a');
