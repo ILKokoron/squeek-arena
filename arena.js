@@ -559,8 +559,11 @@ function syncGacha() {
   els.boxCanvas.hidden = !boxAvail;
   els.prompt.hidden = !boxAvail;
   if (boxAvail && !gachaOpening) els.prompt.textContent = 'CLICK BOX TO OPEN';
-  els.partnerBox.hidden = !opened;
-  els.rays.hidden = !opened;
+  // One state at a time: while the free box is still openable it owns the
+  // stage; the partner reveal takes over once the free mint is used.
+  const showPartner = opened && !boxAvail;
+  els.partnerBox.hidden = !showPartner;
+  els.rays.hidden = !showPartner;
   els.nav.hidden = false;
   els.gachaNext.hidden = !(opened || S.partner);
   els.usedNote.hidden = !opened;
@@ -568,7 +571,7 @@ function syncGacha() {
     els.usedNote.textContent = 'Wallet ' + shortAddr(S.wallet) + ' · partner ' +
       HAMSTERS[pull.partner].name + ' · Recorded on Sepolia.';
   }
-  if (opened && HAMSTERS[pull.partner].rare) els.stage.classList.add('jackpot');
+  if (showPartner && HAMSTERS[pull.partner].rare) els.stage.classList.add('jackpot');
   else els.stage.classList.remove('jackpot');
 }
 function setWallet(addr) {
