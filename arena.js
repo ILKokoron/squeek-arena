@@ -15,7 +15,7 @@ const BOSSES = [
   { id: 1, name: 'BRAGI',    level: 1, form: '1', hp: 55,  atk: 6,  tier: 'dasar',    seconds: 20 },
   { id: 2, name: 'THOTH',    level: 2, form: '2', hp: 85,  atk: 9,  tier: 'menengah', seconds: 18 },
   { id: 3, name: 'SARASWATI', level: 3, form: '3', hp: 125, atk: 12, tier: 'sulit',    seconds: 16 },
-  { id: 4, name: 'ATHENA',   level: 4, form: '4', hp: 175, atk: 16, tier: 'ahli',     seconds: 14 },
+  { id: 4, name: 'ENKI',     level: 4, form: '4', hp: 175, atk: 16, tier: 'ahli',     seconds: 14 },
   { id: 5, name: 'NOUS',     level: 5, form: '5', hp: 240, atk: 20, tier: 'ahli',     seconds: 12 },
 ];
 const HAMSTERS = {
