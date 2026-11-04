@@ -123,6 +123,8 @@ function recordPull(pulls, addr, hamsterId, at) {
    here and the mint panel activates: the first pull is a free mint (gas
    only), extra pulls are paid mints at priceEth. Empty address: not live. */
 const PET_CONTRACT = { address: '', chainId: 11155111, priceEth: '0.002' };
+const MINT_MAX = 10;
+function mintTotalEth(qty) { return (qty * Number(PET_CONTRACT.priceEth)).toFixed(3); }
 function bossDamage(boss, liveBuff, rng) {
   rng = rng || Math.random;
   return Math.max(1, Math.round((boss.atk + (liveBuff || 0)) * (0.85 + rng() * 0.3)));
@@ -177,7 +179,7 @@ function buildLiveQuestions(st) {
 const Logic = { BOSSES, HAMSTERS, QUESTIONS, RARE_CHANCE,
                 levelFromXp, statsFor, playerDamage, bossDamage, gachaRoll,
                 shuffle, makeOptions, buildLiveQuestions,
-                normalizeAddress, pullFor, recordPull, PET_CONTRACT,
+                normalizeAddress, pullFor, recordPull, PET_CONTRACT, mintTotalEth, MINT_MAX,
                 fnv, hashAnswer, encOpt, decOpt, encodeQuestion, correctTextOf };
 if (typeof module !== 'undefined' && module.exports) module.exports = { Logic };
 if (typeof document === 'undefined') return;
@@ -192,6 +194,7 @@ const els = {
   btnPlay: $('btnPlay'), btnHowto: $('btnHowto'), btnResetHome: $('btnResetHome'),
   btnCollection: $('btnCollection'), btnSound: $('btnSound'), btnShop: $('btnShop'),
   shopBoxCanvas: $('shopBoxCanvas'), shopBuy: $('shopBuy'),
+  mintMinus: $('mintMinus'), mintPlus: $('mintPlus'), mintQty: $('mintQty'), mintTotal: $('mintTotal'),
   shopMsg: $('shopMsg'), shopBack: $('shopBack'), gachaShop: $('gachaShop'), certNote: $('certNote'),
   shopConnect: $('shopConnect'),
   collectionNote: $('collectionNote'), collectionBack: $('collectionBack'),
@@ -655,9 +658,16 @@ els.boxCanvas.addEventListener('click', startOpening);
 els.prompt.addEventListener('click', startOpening);
 
 /* ---------- mint panel: extra gacha pulls as Sepolia pet NFTs ---------- */
+let mintQty = 1;
 function renderMint() {
   if (!els.shopMsg) return;
   paint(els.shopBoxCanvas, SPR.box, SPR.boxPal, 4);
+  if (els.mintQty) {
+    els.mintQty.textContent = String(mintQty);
+    els.mintTotal.textContent = 'TOTAL ' + mintTotalEth(mintQty) + ' ETH';
+    els.mintMinus.disabled = mintQty <= 1;
+    els.mintPlus.disabled = mintQty >= MINT_MAX;
+  }
   els.shopConnect.hidden = !!S.wallet;
   const live = !!PET_CONTRACT.address;
   let msg = '', can = false;
@@ -671,8 +681,10 @@ function renderMint() {
 }
 els.shopBuy.addEventListener('click', async () => {
   if (!S.wallet || !currentPull() || (S.pendingPulls || 0) > 0) return;
-  if (!PET_CONTRACT.address) return; // the paidMint call lands here with the deployed address
+  if (!PET_CONTRACT.address) return; // the batch paidMint call for mintQty lands here with the deployed address
 });
+els.mintMinus.addEventListener('click', () => { mintQty = Math.max(1, mintQty - 1); renderMint(); });
+els.mintPlus.addEventListener('click', () => { mintQty = Math.min(MINT_MAX, mintQty + 1); renderMint(); });
 els.shopBack.addEventListener('click', () => showScreen('screenHome'));
 els.shopConnect.addEventListener('click', async () => { await connectWallet(); renderAll(); });
 els.gachaShop.addEventListener('click', () => showScreen('screenShop'));
