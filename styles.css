@@ -1,11 +1,9 @@
-/* Squeek Sprint: PIXEL ART theme.
-   Deliberately simple retro look: limited palette, hard shadows, blocky
-   shapes, chunky monospace headings, sprites drawn on tiny canvases with
-   image-rendering: pixelated. No external assets, no licensed fonts. */
+/* Squeek Arena base layout layer, adapted from the Sprint project.
+   The monochrome retro theme near the end of this file re-skins these
+   rules black and white; the layout itself lives here. */
 :root{
   --ink:#33241a; --ink-soft:#7a5c40; --paper:#fdf3d8; --card:#fffaf0;
-  --line:#33241a; --accent:#e8622c; --accent-dark:#b34a1f;
-  --good:#3da35d; --good-dark:#2b7a44; --bad:#d6455b; --gold:#f2b33d;
+  --line:#33241a; --accent:#e8622c;
   --sky:#ffe1a8; --radius:6px;
 }
 *{box-sizing:border-box}
